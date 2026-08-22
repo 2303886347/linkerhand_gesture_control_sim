@@ -9,7 +9,11 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 
-from linkerhand_retargeting.filters import exponential_moving_average, move_towards
+from linkerhand_retargeting.filters import (
+    JointDeadbandHysteresis,
+    exponential_moving_average,
+    move_towards,
+)
 from linkerhand_retargeting.joints import INDEPENDENT_JOINTS, JOINT_LIMITS
 from linkerhand_retargeting.mapping import (
     JointMapping,
@@ -109,8 +113,18 @@ class LinkerHandRetargetingNode(Node):
         self.declare_parameter('max_joint_velocity', 3.0)
         self.declare_parameter('return_joint_velocity', 0.8)
         self.declare_parameter('mapping_angle_unit', 'deg')
+        self.declare_parameter('joint_deadband.enabled', True)
+        self.declare_parameter('joint_deadband.start_moving_deg', 1.5)
+        self.declare_parameter('joint_deadband.stop_moving_deg', 0.5)
+        self.declare_parameter('joint_deadband.settle_frames', 3)
+        self.declare_parameter('joint_deadband.thumb_start_moving_deg', 2.5)
+        self.declare_parameter('joint_deadband.thumb_stop_moving_deg', 0.8)
 
         self.mappings, self.safe_pose = self._declare_and_load_mappings()
+        self.deadband_enabled = bool(
+            self.get_parameter('joint_deadband.enabled').value
+        )
+        self.deadband_filters = self._load_deadband_filters()
         self.accepted_hand = str(self.get_parameter('accepted_hand').value).lower()
         self.confidence_threshold = float(
             self.get_parameter('confidence_threshold').value
@@ -148,8 +162,48 @@ class LinkerHandRetargetingNode(Node):
         self.get_logger().info(
             f'正在订阅 {input_topic}；基础阶段启用 {driven_count} 个屈曲关节；'
             f'映射配置单位={self.get_parameter("mapping_angle_unit").value}；'
+            f'关节死区={"启用" if self.deadband_enabled else "关闭"}；'
             f'输出 {output_topic}'
         )
+
+    def _load_deadband_filters(self):
+        if not self.deadband_enabled:
+            return {}
+
+        settle_frames = int(
+            self.get_parameter('joint_deadband.settle_frames').value
+        )
+        finger_start = math.radians(
+            float(self.get_parameter('joint_deadband.start_moving_deg').value)
+        )
+        finger_stop = math.radians(
+            float(self.get_parameter('joint_deadband.stop_moving_deg').value)
+        )
+        thumb_start = math.radians(
+            float(
+                self.get_parameter(
+                    'joint_deadband.thumb_start_moving_deg'
+                ).value
+            )
+        )
+        thumb_stop = math.radians(
+            float(
+                self.get_parameter(
+                    'joint_deadband.thumb_stop_moving_deg'
+                ).value
+            )
+        )
+
+        filters = {}
+        for joint in INDEPENDENT_JOINTS:
+            is_thumb = joint.startswith('thumb_')
+            filters[joint] = JointDeadbandHysteresis(
+                initial_value=self.safe_pose[joint],
+                start_threshold=thumb_start if is_thumb else finger_start,
+                stop_threshold=thumb_stop if is_thumb else finger_stop,
+                settle_frames=settle_frames,
+            )
+        return filters
 
     def _declare_and_load_mappings(self):
         mappings = {}
@@ -276,8 +330,15 @@ class LinkerHandRetargetingNode(Node):
             return
 
         for joint in INDEPENDENT_JOINTS:
+            stabilized_target = raw_target[joint]
+            if self.deadband_enabled:
+                stabilized_target = self.deadband_filters[joint].update(
+                    stabilized_target
+                )
             self.filtered_target[joint] = exponential_moving_average(
-                self.filtered_target[joint], raw_target[joint], self.filter_alpha
+                self.filtered_target[joint],
+                stabilized_target,
+                self.filter_alpha,
             )
         self.last_valid_time = now
 

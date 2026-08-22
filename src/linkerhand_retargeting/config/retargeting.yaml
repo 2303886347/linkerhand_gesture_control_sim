@@ -10,6 +10,14 @@ linkerhand_retargeting:
 
     # 一阶低通系数。越小越平滑，但跟随延迟越明显。
     filter_alpha: 0.35
+    # 关节死区与迟滞阈值使用机械手目标角度的度数。
+    joint_deadband:
+      enabled: true
+      start_moving_deg: 1.5
+      stop_moving_deg: 0.5
+      settle_frames: 3
+      thumb_start_moving_deg: 2.5
+      thumb_stop_moving_deg: 0.8
     hold_timeout: 0.30
     publish_rate: 30.0
     # 正常跟手速度和丢失目标后的回零速度分开配置。

@@ -50,6 +50,22 @@ MediaPipe 调试窗口对照。ROS 话题、URDF、RViz 和后续控制器内部
 `max_joint_velocity` 控制正常跟手的最大速度，`return_joint_velocity` 单独控制
 目标丢失后的回零速度。默认回零速度为 `0.8 rad/s`，不会拖慢正常跟手。
 
+左右手配置还分别提供映射后的关节死区与迟滞消抖，阈值直接使用度数：
+
+```yaml
+joint_deadband:
+  enabled: true
+  start_moving_deg: 1.5
+  stop_moving_deg: 0.5
+  settle_frames: 3
+  thumb_start_moving_deg: 2.5
+  thumb_stop_moving_deg: 0.8
+```
+
+静止时，关节只有偏离锁定值达到 `start_moving_deg` 才重新跟随；运动后连续
+`settle_frames` 帧进入 `stop_moving_deg` 范围才重新锁定。拇指因映射倍率较大而
+使用独立阈值。修改 YAML 后需要重启对应启动文件。
+
 当前四指 PIP 已按左手实测范围标定：
 
 | 关节 | MediaPipe 输入 | RViz 输出 |
