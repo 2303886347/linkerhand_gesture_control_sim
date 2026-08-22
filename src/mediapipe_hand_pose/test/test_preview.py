@@ -1,6 +1,8 @@
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 from mediapipe_hand_pose.hand_pose_node import MediaPipeHandPoseNode
 
@@ -26,3 +28,54 @@ def test_disabled_mirror_keeps_image_direction():
 
     assert debug_frame.tolist() == frame.tolist()
     assert debug_frame is not frame
+
+
+def test_angle_calculation_prefers_world_landmarks():
+    image_points = np.zeros((21, 3))
+    world_points = np.ones((21, 3))
+    expected = {'index_pip_flexion': 0.5}
+
+    with patch(
+        'mediapipe_hand_pose.hand_pose_node.calculate_joint_angles',
+        return_value=expected,
+    ) as calculate:
+        angles, used_fallback = (
+            MediaPipeHandPoseNode._calculate_angles_with_fallback(
+                image_points, world_points
+            )
+        )
+
+    assert angles == expected
+    assert used_fallback is False
+    calculate.assert_called_once_with(world_points)
+
+
+def test_angle_calculation_falls_back_to_image_landmarks():
+    image_points = np.zeros((21, 3))
+    world_points = np.ones((21, 3))
+    expected = {'index_pip_flexion': 0.5}
+
+    with patch(
+        'mediapipe_hand_pose.hand_pose_node.calculate_joint_angles',
+        side_effect=[ValueError('world failed'), expected],
+    ) as calculate:
+        angles, used_fallback = (
+            MediaPipeHandPoseNode._calculate_angles_with_fallback(
+                image_points, world_points
+            )
+        )
+
+    assert angles == expected
+    assert used_fallback is True
+    assert calculate.call_count == 2
+
+
+def test_angle_calculation_reports_both_failures():
+    with patch(
+        'mediapipe_hand_pose.hand_pose_node.calculate_joint_angles',
+        side_effect=[ValueError('world failed'), ValueError('image failed')],
+    ):
+        with pytest.raises(ValueError, match='图像关键点也失败'):
+            MediaPipeHandPoseNode._calculate_angles_with_fallback(
+                np.zeros((21, 3)), np.ones((21, 3))
+            )

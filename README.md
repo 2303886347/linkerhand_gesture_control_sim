@@ -9,7 +9,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
-[![Tests](https://img.shields.io/badge/tests-31_passing-brightgreen)](#验证与测试)
+[![Tests](https://img.shields.io/badge/tests-34_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
@@ -45,6 +45,7 @@ Gazebo 控制器。URDF 描述包已经提供独立的 RViz 和 Gazebo Sim 模�
 - 双手模式只打开一次摄像头，左右识别、标定、话题和 TF 完全隔离。
 - 左右手使用独立的实测输入范围与机械手角度映射。
 - 调试画面支持镜像显示，不改变左右手判定和输出数据。
+- 3D 关键点短时退化时回退到图像关键点，避免控制链误判丢失。
 - One Euro、关节死区/迟滞、EMA 和关节速度限制。
 - 目标丢失后短暂保持，并平滑返回安全开掌姿态。
 - L30 左右手 URDF、mesh、RViz 2 和 Gazebo Sim 描述包。
@@ -162,7 +163,7 @@ colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
 colcon test-result --verbose
 ```
 
-当前验证基线：`31 tests, 0 errors, 0 failures`。
+当前验证基线：`34 tests, 0 errors, 0 failures`。
 
 ## 路线图
 
