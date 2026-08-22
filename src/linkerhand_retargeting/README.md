@@ -49,6 +49,8 @@ MediaPipe 调试窗口对照。ROS 话题、URDF、RViz 和后续控制器内部
 
 `max_joint_velocity` 控制正常跟手的最大速度，`return_joint_velocity` 单独控制
 目标丢失后的回零速度。默认回零速度为 `0.8 rad/s`，不会拖慢正常跟手。
+`hold_timeout` 默认为 `0.80s`，只有连续无效超过该时间才开始回零，避免半握时的
+短暂遮挡或角度计算退化造成 `tracking/returning` 反复切换。
 
 左右手配置还分别提供映射后的关节死区与迟滞消抖，阈值直接使用度数：
 

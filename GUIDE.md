@@ -134,7 +134,7 @@ colcon test-result --verbose
 当前基线为：
 
 ```text
-31 tests, 0 errors, 0 failures
+34 tests, 0 errors, 0 failures
 ```
 
 ## 4. 三种完整运行模式
@@ -364,6 +364,10 @@ MediaPipe 原始检测
   -> RViz
 ```
 
+MediaPipe 优先用 3D `world_landmarks` 计算角度；如果半握遮挡导致 3D 几何暂时
+退化，但图像骨架仍存在，节点会自动回退到经过关键点滤波的图像坐标继续计算，避免
+发布空角度并触发重定向回零。
+
 ### 8.1 One Euro
 
 默认参数：
@@ -444,12 +448,13 @@ filter_alpha: 0.35
 ### 8.4 速度和丢失目标
 
 ```yaml
-hold_timeout: 0.30
+hold_timeout: 0.80
 max_joint_velocity: 3.0
 return_joint_velocity: 0.8
 ```
 
-- `hold_timeout`：短暂丢失目标时保持最后姿态的时间。
+- `hold_timeout`：连续无效超过该时间后才返回安全姿态；默认 `0.80s`，用于跨过
+  半握遮挡或 3D 关键点短时退化。
 - `max_joint_velocity`：正常跟手最大速度，单位 `rad/s`。
 - `return_joint_velocity`：丢失目标后回到开掌姿态的速度。
 
