@@ -11,7 +11,9 @@
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
 [![Tests](https://img.shields.io/badge/tests-21_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
+[![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/2303886347/linkerhand_gesture_control_sim?color=blue)](https://github.com/2303886347/linkerhand_gesture_control_sim/pulls)
 
 [简体中文](README.md) | [English](README.en.md) | [调试与运行手册](GUIDE.md) | [提交问题](https://github.com/2303886347/linkerhand_gesture_control_sim/issues/new/choose)
 
