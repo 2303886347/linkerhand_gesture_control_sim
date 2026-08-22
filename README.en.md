@@ -9,8 +9,11 @@ A ROS 2, MediaPipe, and RViz 2 workspace for vision-driven Linker Hand L30 simul
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
-[![Tests](https://img.shields.io/badge/tests-21_passing-brightgreen)](#validation)
+[![Tests](https://img.shields.io/badge/tests-31_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
+[![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/2303886347/linkerhand_gesture_control_sim?color=blue)](https://github.com/2303886347/linkerhand_gesture_control_sim/pulls)
 
 [简体中文](README.md) | [English](README.en.md) | [Chinese operation guide](GUIDE.md) | [Issues](https://github.com/2303886347/linkerhand_gesture_control_sim/issues/new/choose)
 
@@ -41,7 +44,7 @@ The description packages do include standalone RViz and Gazebo Sim model launche
 - A single camera shared by isolated left and right perception pipelines.
 - Independent calibration, topics, joint states, and TF trees for both hands.
 - Mirrored preview without changing handedness classification or published data.
-- One Euro landmark/angle filtering, EMA target smoothing, and slew-rate limiting.
+- One Euro filtering, joint deadband/hysteresis, EMA, and slew-rate limiting.
 - Hold-on-dropout behavior followed by a smooth return to the safe open pose.
 - ROS 2-ready URDF, meshes, RViz 2, and Gazebo Sim description packages.
 - Chinese source comments and logs with bilingual repository documentation.
@@ -127,11 +130,13 @@ are lightweight demonstration profiles and do not maintain separate implementati
 
 ## Filtering
 
-The processing chain combines three mechanisms:
+The processing chain combines four mechanisms:
 
 1. One Euro filtering for preview landmarks and measured human joint angles.
-2. EMA smoothing after mapping human angles to robot targets.
-3. Slew-rate limiting for large changes and a separate safe-return velocity.
+2. Per-joint deadband and hysteresis lock small static noise until real motion crosses
+   the start threshold.
+3. EMA smoothing after deadband stabilization.
+4. Slew-rate limiting for large changes and a separate safe-return velocity.
 
 A useful starting point for stronger static stabilization is:
 
@@ -150,7 +155,7 @@ colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
 colcon test-result --verbose
 ```
 
-Current baseline: `21 tests, 0 errors, 0 failures`.
+Current baseline: `31 tests, 0 errors, 0 failures`.
 
 ## Roadmap
 
@@ -158,7 +163,7 @@ Current baseline: `21 tests, 0 errors, 0 failures`.
 - [x] MediaPipe hand landmarks and semantic angles
 - [x] Left, right, and dual-hand RViz synchronization
 - [x] Independent calibration and adaptive filtering
-- [ ] Joint deadband and hysteresis
+- [x] Configurable per-hand joint deadband and hysteresis
 - [ ] Gazebo controller synchronization
 - [ ] Physical Linker Hand adapter
 - [ ] Recording, playback, and quantitative jitter evaluation
