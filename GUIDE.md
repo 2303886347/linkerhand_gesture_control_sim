@@ -134,7 +134,7 @@ colcon test-result --verbose
 当前基线为：
 
 ```text
-21 tests, 0 errors, 0 failures
+31 tests, 0 errors, 0 failures
 ```
 
 ## 4. 三种完整运行模式
@@ -350,7 +350,7 @@ src/linkerhand_retargeting/config/retargeting_right.yaml
 
 ## 8. 滤波原理和参数
 
-当前链路包含三层处理：
+当前链路包含四层处理：
 
 ```text
 MediaPipe 原始检测
@@ -358,6 +358,7 @@ MediaPipe 原始检测
   -> 计算人体关节角
   -> One Euro 关节角滤波
   -> 标定映射
+  -> 关节死区与迟滞
   -> EMA 目标滤波
   -> 关节速度限制
   -> RViz
@@ -389,7 +390,37 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
   one_euro_beta:=0.4
 ```
 
-### 8.2 EMA
+### 8.2 关节死区与迟滞
+
+死区层位于标定映射之后、EMA 之前。每个机械手关节独立判断运动状态：
+
+- 静止时保持锁定角度，小范围噪声不会继续传给 RViz。
+- 偏离锁定角度达到启动阈值后，恢复连续跟随。
+- 运动过程中，连续若干帧的角度范围进入停止阈值后重新锁定。
+- 启动阈值大于停止阈值，避免临界位置反复启停。
+
+左右手分别在 `retargeting_left.yaml` 和 `retargeting_right.yaml` 中配置：
+
+```yaml
+joint_deadband:
+  enabled: true
+  start_moving_deg: 1.5
+  stop_moving_deg: 0.5
+  settle_frames: 3
+  thumb_start_moving_deg: 2.5
+  thumb_stop_moving_deg: 0.8
+```
+
+这些阈值使用映射后的机械手目标角度，单位固定为度，与 ROS 话题内部使用弧度无关。
+拇指输入范围较窄、映射倍率较大，因此使用独立且稍宽的阈值。
+
+- 静止仍抖：先把 `start_moving_deg` 每次提高 `0.2~0.5` 度。
+- 慢动作有台阶感：降低 `start_moving_deg`，不要先降低 `filter_alpha`。
+- 动作停止后锁定太慢：减小 `settle_frames`，最小值为 `2`。
+- 运动中频繁锁定：减小 `stop_moving_deg` 或增大 `settle_frames`。
+- 临时对照原始效果：设置 `enabled: false` 并重启节点。
+
+### 8.3 EMA
 
 EMA 公式：
 
@@ -410,7 +441,7 @@ filter_alpha: 0.35
 `filter_alpha` 位于左右两个 `retargeting_*.yaml` 中。当前节点在启动时读取参数，修改
 后需要重新启动；仅执行 `ros2 param set` 不会重建内部滤波器。
 
-### 8.3 速度和丢失目标
+### 8.4 速度和丢失目标
 
 ```yaml
 hold_timeout: 0.30
@@ -424,13 +455,14 @@ return_joint_velocity: 0.8
 
 速度限制主要处理大幅跳变，不应代替 One Euro 或 EMA 的静止消抖。
 
-### 8.4 推荐调参顺序
+### 8.5 推荐调参顺序
 
 1. 观察 MediaPipe 骨架是否抖动。
 2. 骨架抖动时先降低 `one_euro_min_cutoff`。
 3. 快速动作太慢时适当提高 `one_euro_beta`。
-4. 骨架稳定但 RViz 仍抖时，把 `filter_alpha` 从 `0.35` 降到 `0.25~0.30`。
-5. 仍有 1~2 度微动时，再考虑在重定向层加入死区或迟滞。
+4. 骨架稳定但 RViz 仍有小幅静止抖动时，先调整 `joint_deadband`。
+5. 静止稳定但运动过程仍过于敏感时，再把 `filter_alpha` 从 `0.35` 降到
+   `0.25~0.30`。
 
 不建议直接叠加卡尔曼滤波。对于“静止抑制噪声、运动保持响应”的手势跟踪，One Euro
 通常更容易调。卡尔曼更适合需要速度状态估计、短时预测或遮挡补偿的后续阶段。

@@ -9,9 +9,11 @@
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
-[![Tests](https://img.shields.io/badge/tests-21_passing-brightgreen)](#验证与测试)
+[![Tests](https://img.shields.io/badge/tests-31_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
+[![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/2303886347/linkerhand_gesture_control_sim?color=blue)](https://github.com/2303886347/linkerhand_gesture_control_sim/pulls)
 
 [简体中文](README.md) | [English](README.en.md) | [调试与运行手册](GUIDE.md) | [提交问题](https://github.com/2303886347/linkerhand_gesture_control_sim/issues/new/choose)
 
@@ -19,9 +21,12 @@
 
 <div align="center">
 
-[![点击播放双手手势同步演示](docs/assets/linkhand_demo_cover.jpg)](docs/assets/linkhand_demo.mp4)
+双手手势MediaPipe → 角度映射 → RViz 同步演示同步演示:
 
-**点击图片播放双手 MediaPipe → 角度映射 → RViz 同步演示**
+
+https://github.com/user-attachments/assets/42c7ba90-533e-4c96-a445-143ad9f55d39
+
+
 
 </div>
 
@@ -40,7 +45,7 @@ Gazebo 控制器。URDF 描述包已经提供独立的 RViz 和 Gazebo Sim 模�
 - 双手模式只打开一次摄像头，左右识别、标定、话题和 TF 完全隔离。
 - 左右手使用独立的实测输入范围与机械手角度映射。
 - 调试画面支持镜像显示，不改变左右手判定和输出数据。
-- One Euro 关键点/角度滤波、EMA 目标滤波和关节速度限制。
+- One Euro、关节死区/迟滞、EMA 和关节速度限制。
 - 目标丢失后短暂保持，并平滑返回安全开掌姿态。
 - L30 左右手 URDF、mesh、RViz 2 和 Gazebo Sim 描述包。
 - 中文源码注释、中文运行日志以及中英双语项目文档。
@@ -63,8 +68,8 @@ flowchart LR
 ```
 
 ```text
-摄像头 -> MediaPipe -> 人体关节角 -> 左右手标定映射
-       -> One Euro + EMA + 限速 -> JointState -> RViz 2
+摄像头 -> MediaPipe -> One Euro -> 人体关节角 -> 左右手标定映射
+       -> 死区/迟滞 + EMA + 限速 -> JointState -> RViz 2
 ```
 
 ## 快速开始
@@ -132,11 +137,12 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 
 ## 滤波
 
-当前链路不是简单的固定低通，而是三层处理：
+当前链路不是简单的固定低通，而是四层处理：
 
 1. One Euro 对调试骨架关键点和人体关节角进行自适应滤波。
-2. EMA 对映射后的机械手目标再次平滑。
-3. 速度限制抑制异常的大幅跳变，并单独控制目标丢失后的回零速度。
+2. 关节死区与迟滞锁住静止小噪声，并在真实动作越过启动阈值后恢复跟随。
+3. EMA 对消抖后的机械手目标再次平滑。
+4. 速度限制抑制异常的大幅跳变，并单独控制目标丢失后的回零速度。
 
 推荐从以下参数开始调整静止抖动：
 
@@ -156,7 +162,7 @@ colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
 colcon test-result --verbose
 ```
 
-当前验证基线：`21 tests, 0 errors, 0 failures`。
+当前验证基线：`31 tests, 0 errors, 0 failures`。
 
 ## 路线图
 
@@ -164,7 +170,7 @@ colcon test-result --verbose
 - [x] MediaPipe 左右手关键点与关节角
 - [x] 左手、右手、双手 RViz 同步
 - [x] 独立标定、One Euro、EMA 和回零限速
-- [ ] 关节死区与迟滞消抖
+- [x] 可配置的左右手独立关节死区与迟滞消抖
 - [ ] Gazebo 控制器闭环同步
 - [ ] 真实 Linker Hand 控制适配器
 - [ ] 录制、回放和定量抖动评估工具

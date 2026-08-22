@@ -11,6 +11,16 @@
 
     # 一阶低通系数。越小越平滑，但跟随延迟越明显。
     filter_alpha: 0.35
+    # 左手关节死区与迟滞参数，全部使用机械手目标角度的度数。
+    # 超过 start_moving_deg 才跟随；稳定窗口小于 stop_moving_deg 后重新锁定。
+    joint_deadband:
+      enabled: true
+      start_moving_deg: 1.5
+      stop_moving_deg: 0.5
+      settle_frames: 3
+      # 拇指映射倍率更大，单独使用稍宽阈值。
+      thumb_start_moving_deg: 2.5
+      thumb_stop_moving_deg: 0.8
     hold_timeout: 0.30
     publish_rate: 30.0
     # 正常跟手速度和丢失目标后的回零速度分开配置。
