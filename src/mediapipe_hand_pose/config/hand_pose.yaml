@@ -1,0 +1,24 @@
+/**:
+  ros__parameters:
+    input_topic: /usb_camera/image_raw
+    pose_topic: /mediapipe/hand_pose
+    angles_topic: /mediapipe/human_joint_angles
+    debug_image_topic: /mediapipe/debug_image
+    target_hand: any
+    input_mirrored: false
+    model_complexity: 1
+    max_num_hands: 2
+    min_detection_confidence: 0.6
+    min_tracking_confidence: 0.6
+    max_processing_fps: 15.0
+    publish_debug_image: true
+    show_preview: false
+    preview_window_name: MediaPipe Hand Pose
+    # 只镜像带标注的显示画面，不改变原始图像、左右手判定和关节角。
+    mirror_preview: true
+    # 对显示关键点和人体关节角做自适应消抖。
+    use_one_euro_filter: true
+    one_euro_min_cutoff: 0.8
+    one_euro_beta: 0.3
+    one_euro_derivative_cutoff: 1.0
+    one_euro_reset_timeout: 0.5

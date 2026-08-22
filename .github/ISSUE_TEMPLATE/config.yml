@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 调试与运行手册 / Operation guide
+    url: https://github.com/2303886347/linkerhand_gesture_control_sim/blob/main/GUIDE.md
+    about: 提交问题前先检查摄像头、ROS 2、TF、RViz 和滤波排查步骤。

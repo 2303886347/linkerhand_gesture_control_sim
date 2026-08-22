@@ -1,0 +1,137 @@
+linkerhand_retargeting:
+  ros__parameters:
+    input_topic: /mediapipe/hand_pose
+    output_topic: /linkerhand/target_joint_states
+    status_topic: /linkerhand/retargeting_status
+
+    # any 表示接受任意一只手；也可设置为 left 或 right。
+    accepted_hand: any
+    confidence_threshold: 0.5
+
+    # 一阶低通系数。越小越平滑，但跟随延迟越明显。
+    filter_alpha: 0.35
+    hold_timeout: 0.30
+    publish_rate: 30.0
+    # 正常跟手速度和丢失目标后的回零速度分开配置。
+    max_joint_velocity: 3.0
+    return_joint_velocity: 0.8
+    # 映射参数使用度数，便于和 MediaPipe 调试窗口直接对照。
+    # ROS JointState、URDF、RViz 和控制器内部仍统一使用弧度。
+    mapping_angle_unit: deg
+
+    # 第一阶段只启用四指 MCP/PIP 和拇指 MCP/IP 的屈曲映射。
+    # input_* 是人体角度范围，output_* 是机械手目标范围，单位均为度。
+    mapping:
+      wrist_pitch:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      pinky_mcp_roll:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      pinky_mcp_pitch:
+        source: pinky_mcp_flexion
+        input_min: 0.0
+        input_max: 70.0
+        output_min: 0.0
+        output_max: 80.0
+        invert: false
+        safe_position: 0.0
+      pinky_pip:
+        source: pinky_pip_flexion
+        # MediaPipe 调试窗口实测：伸直约 20 度，弯曲约 80 度。
+        input_min: 20.0
+        input_max: 80.0
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      ring_mcp_roll:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      ring_mcp_pitch:
+        source: ring_mcp_flexion
+        input_min: 0.0
+        input_max: 70.0
+        output_min: 0.0
+        output_max: 80.0
+        invert: false
+        safe_position: 0.0
+      ring_pip:
+        source: ring_pip_flexion
+        # MediaPipe 调试窗口实测：伸直约 20 度，弯曲约 80 度。
+        input_min: 20.0
+        input_max: 80.0
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      middle_mcp_roll:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      middle_mcp_pitch:
+        source: middle_mcp_flexion
+        input_min: 0.0
+        input_max: 70.0
+        output_min: 0.0
+        output_max: 80.0
+        invert: false
+        safe_position: 0.0
+      middle_pip:
+        source: middle_pip_flexion
+        # MediaPipe 调试窗口实测：伸直约 30 度，弯曲约 85 度。
+        input_min: 30.0
+        input_max: 85.0
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      index_mcp_roll:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      index_mcp_pitch:
+        source: index_mcp_flexion
+        input_min: 0.0
+        input_max: 70.0
+        output_min: 0.0
+        output_max: 80.0
+        invert: false
+        safe_position: 0.0
+      index_pip:
+        source: index_pip_flexion
+        # MediaPipe 调试窗口实测：伸直约 15 度，弯曲约 75 度。
+        input_min: 15.0
+        input_max: 75.0
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      thumb_cmc_yaw:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      thumb_cmc_pitch:
+        source: ''
+        fixed_position: 0.0
+        safe_position: 0.0
+      thumb_mcp:
+        source: thumb_mcp_flexion
+        # 实测 MediaPipe 范围约 5~35 度，映射为机械手 0~85 度。
+        input_min: 5.0
+        input_max: 35.0
+        output_min: 0.0
+        output_max: 85.0
+        invert: false
+        safe_position: 0.0
+      thumb_dip:
+        source: thumb_ip_flexion
+        input_min: 0.0
+        input_max: 86.0
+        output_min: 0.0
+        output_max: 80.0
+        invert: false
+        safe_position: 0.0

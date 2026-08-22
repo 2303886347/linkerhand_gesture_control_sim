@@ -1,0 +1,41 @@
+name: Bug report / 问题报告
+description: 报告可复现的摄像头、MediaPipe、映射、TF 或 RViz 问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: 感谢反馈。请提供能够复现问题的完整信息。
+  - type: input
+    id: environment
+    attributes:
+      label: 环境 / Environment
+      description: Ubuntu、ROS 2、Python、MediaPipe 版本
+      placeholder: Ubuntu 22.04, ROS 2 Humble, Python 3.10
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: 启动命令 / Launch command
+      placeholder: ros2 launch ...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为 / Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志与截图 / Logs and screenshots
+      render: shell
