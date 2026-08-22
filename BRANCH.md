@@ -9,7 +9,7 @@ RViz demo. The full source and shared development baseline remain on `main`.
 ## Run / 运行
 
 ```bash
-cd /home/ubuntu/linkerhand_ros2_ws
+cd ~/linkerhand_ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
 ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
