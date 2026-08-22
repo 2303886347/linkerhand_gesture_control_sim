@@ -49,15 +49,15 @@ Gazebo 控制器。URDF 描述包已经提供独立的 RViz 和 Gazebo Sim 模�
 
 ```mermaid
 flowchart LR
-    CAM[USB Camera] --> IMG[/usb_camera/image_raw]
+    CAM[USB Camera] --> IMG["/usb_camera/image_raw"]
     IMG --> MPL[MediaPipe Left]
     IMG --> MPR[MediaPipe Right]
     MPL --> FL[One Euro Filter]
     MPR --> FR[One Euro Filter]
     FL --> RL[Left Retargeting]
     FR --> RR[Right Retargeting]
-    RL --> JL[/left/joint_states]
-    RR --> JR[/right/joint_states]
+    RL --> JL["/left/joint_states"]
+    RR --> JR["/right/joint_states"]
     JL --> RVIZ[RViz 2]
     JR --> RVIZ
 ```
