@@ -21,9 +21,12 @@
 
 <div align="center">
 
-双手手势同步演示:
-https://github.com/user-attachments/assets/9acf8812-8c04-4419-b8a5-bc24d39f4d32
-** MediaPipe → 角度映射 → RViz 同步演示**
+双手手势MediaPipe → 角度映射 → RViz 同步演示同步演示:
+
+
+https://github.com/user-attachments/assets/42c7ba90-533e-4c96-a445-143ad9f55d39
+
+
 
 </div>
 
