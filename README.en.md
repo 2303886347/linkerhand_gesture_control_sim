@@ -9,7 +9,7 @@ A ROS 2, MediaPipe, and RViz 2 workspace for vision-driven Linker Hand L30 simul
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
-[![Tests](https://img.shields.io/badge/tests-31_passing-brightgreen)](#validation)
+[![Tests](https://img.shields.io/badge/tests-34_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
@@ -44,6 +44,7 @@ The description packages do include standalone RViz and Gazebo Sim model launche
 - A single camera shared by isolated left and right perception pipelines.
 - Independent calibration, topics, joint states, and TF trees for both hands.
 - Mirrored preview without changing handedness classification or published data.
+- Image-landmark fallback when 3D landmarks temporarily become degenerate.
 - One Euro filtering, joint deadband/hysteresis, EMA, and slew-rate limiting.
 - Hold-on-dropout behavior followed by a smooth return to the safe open pose.
 - ROS 2-ready URDF, meshes, RViz 2, and Gazebo Sim description packages.
@@ -155,7 +156,7 @@ colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
 colcon test-result --verbose
 ```
 
-Current baseline: `31 tests, 0 errors, 0 failures`.
+Current baseline: `34 tests, 0 errors, 0 failures`.
 
 ## Roadmap
 

@@ -108,7 +108,7 @@ class LinkerHandRetargetingNode(Node):
         self.declare_parameter('accepted_hand', 'any')
         self.declare_parameter('confidence_threshold', 0.5)
         self.declare_parameter('filter_alpha', 0.35)
-        self.declare_parameter('hold_timeout', 0.30)
+        self.declare_parameter('hold_timeout', 0.80)
         self.declare_parameter('publish_rate', 30.0)
         self.declare_parameter('max_joint_velocity', 3.0)
         self.declare_parameter('return_joint_velocity', 0.8)

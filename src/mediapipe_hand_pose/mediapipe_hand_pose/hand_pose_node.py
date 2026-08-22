@@ -117,6 +117,7 @@ class MediaPipeHandPoseNode(Node):
         self.last_process_time = 0.0
         self.convert_failures = 0
         self.geometry_failures = 0
+        self.geometry_fallbacks = 0
         self.get_logger().info(
             f'正在订阅 {input_topic}；目标手={self.target_hand}；'
             f'最大处理帧率={self.max_processing_fps:.1f} FPS；'
@@ -171,6 +172,23 @@ class MediaPipeHandPoseNode(Node):
             [[point.x, point.y, point.z] for point in landmarks.landmark],
             dtype=float,
         )
+
+    @staticmethod
+    def _calculate_angles_with_fallback(image_points, world_points=None):
+        """优先使用 3D 关键点，退化时回退到仍可见的图像关键点。"""
+        if world_points is None:
+            return calculate_joint_angles(image_points), False
+
+        try:
+            return calculate_joint_angles(world_points), False
+        except ValueError as world_error:
+            try:
+                return calculate_joint_angles(image_points), True
+            except ValueError as image_error:
+                raise ValueError(
+                    f'3D 关键点失败：{world_error}；'
+                    f'图像关键点也失败：{image_error}'
+                ) from image_error
 
     def _publish_debug_frame(self, frame, header):
         if self.publish_debug_image:
@@ -324,9 +342,24 @@ class MediaPipeHandPoseNode(Node):
         debug_frame, debug_landmarks = self._prepare_debug_frame(
             frame, filtered_landmarks
         )
-        angle_source = world_landmarks if world_landmarks is not None else landmarks
         try:
-            angles = calculate_joint_angles(self._to_numpy(angle_source))
+            world_points = (
+                None
+                if world_landmarks is None
+                else self._to_numpy(world_landmarks)
+            )
+            angles, used_image_fallback = self._calculate_angles_with_fallback(
+                self._to_numpy(filtered_landmarks), world_points
+            )
+            if used_image_fallback:
+                self.geometry_fallbacks += 1
+                if (
+                    self.geometry_fallbacks == 1
+                    or self.geometry_fallbacks % 30 == 0
+                ):
+                    self.get_logger().warning(
+                        '3D 关键点暂时退化，已回退到图像关键点计算关节角'
+                    )
             angles = self._filter_joint_angles(angles, now)
         except ValueError as error:
             self.geometry_failures += 1

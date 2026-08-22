@@ -21,7 +21,8 @@
       # 拇指映射倍率更大，单独使用稍宽阈值。
       thumb_start_moving_deg: 2.5
       thumb_stop_moving_deg: 0.8
-    hold_timeout: 0.30
+    # 连续无效超过该时间才回零，避免半握遮挡造成 tracking/returning 抖动。
+    hold_timeout: 0.80
     publish_rate: 30.0
     # 正常跟手速度和丢失目标后的回零速度分开配置。
     max_joint_velocity: 3.0

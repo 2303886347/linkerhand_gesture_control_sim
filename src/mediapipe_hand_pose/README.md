@@ -62,6 +62,10 @@ ros2 launch mediapipe_hand_pose mediapipe.launch.py
 角度统一使用弧度。四指分别输出 MCP 侧摆、MCP 屈曲、PIP 屈曲和 DIP
 屈曲；拇指输出 CMC 外展、CMC 屈曲、MCP 屈曲和 IP 屈曲，共 20 个角度。
 
+角度计算优先使用 MediaPipe 的 3D `world_landmarks`。半握遮挡导致 3D 几何
+暂时退化、但图像骨架仍有效时，节点会自动回退到滤波后的图像关键点，避免发布
+空角度并让下游误触发安全回零。
+
 ## One Euro 消抖
 
 默认对预览骨架关键点和最终人体关节角启用 One Euro 自适应低通。静止时会
