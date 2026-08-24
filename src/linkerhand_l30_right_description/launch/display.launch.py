@@ -21,21 +21,34 @@ def _launch_setup(context):
         Node(
             package='joint_state_publisher_gui',
             executable='joint_state_publisher_gui',
+            namespace='right',
             name='joint_state_publisher_gui',
             condition=IfCondition(LaunchConfiguration('use_gui')),
+            remappings=[
+                ('joint_states', LaunchConfiguration('joint_states_topic'))
+            ],
             output='screen',
         ),
         Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
+            namespace='right',
             name='robot_state_publisher',
-            parameters=[{'robot_description': robot_description}],
+            parameters=[
+                {
+                    'robot_description': robot_description,
+                    'frame_prefix': 'right/',
+                }
+            ],
+            remappings=[
+                ('joint_states', LaunchConfiguration('joint_states_topic'))
+            ],
             output='screen',
         ),
         Node(
             package='rviz2',
             executable='rviz2',
-            name='rviz2',
+            name='rviz2_right_hand',
             arguments=['-d', LaunchConfiguration('rviz_config')],
             condition=IfCondition(LaunchConfiguration('use_rviz')),
             output='screen',
@@ -56,6 +69,11 @@ def generate_launch_description():
             'rviz_config',
             default_value=str(package_share / 'rviz' / 'display.rviz'),
             description='RViz 2 配置文件的绝对路径。',
+        ),
+        DeclareLaunchArgument(
+            'joint_states_topic',
+            default_value='/right/joint_states',
+            description='右手完整关节状态话题。',
         ),
         DeclareLaunchArgument(
             'use_gui',

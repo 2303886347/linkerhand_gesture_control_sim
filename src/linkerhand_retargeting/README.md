@@ -41,6 +41,9 @@ ros2 topic echo /linkerhand/target_joint_states --once
 ros2 topic echo /linkerhand/retargeting_status
 ```
 
+上面是单独启动 `retargeting.launch.py` 时保留的兼容话题。使用下方的一体化
+左手、右手或双手入口时，话题统一放入 `/left`、`/right` 命名空间。
+
 左右手分别使用 `retargeting_left.yaml` 和 `retargeting_right.yaml`。两个映射
 文件都设置 `mapping_angle_unit: deg`，所以 `input_min`、`input_max`、
 `output_min`、`output_max`、固定位置和安全位置都直接填写度数，便于和
@@ -116,14 +119,20 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
 
 单手模式默认以 15 FPS 运行一个 MediaPipe 实例。双手模式共享同一个 USB 摄像头，
 左右识别、角度转换、关节状态和 TF 完全隔离；默认每边以 10 FPS 运行一个
-MediaPipe 实例，降低同时推理时的 CPU 压力。双手主要话题如下：
+MediaPipe 实例，降低同时推理时的 CPU 压力。三种一体化入口都使用同一套左右手
+命名空间，主要话题如下：
 
 | 功能 | 左手 | 右手 |
 | --- | --- | --- |
 | 人手姿态 | `/left/mediapipe/hand_pose` | `/right/mediapipe/hand_pose` |
 | 机械手目标 | `/left/linkerhand/target_joint_states` | `/right/linkerhand/target_joint_states` |
+| 重定向状态 | `/left/linkerhand/retargeting_status` | `/right/linkerhand/retargeting_status` |
 | RViz 关节 | `/left/joint_states` | `/right/joint_states` |
 | 模型描述 | `/left/robot_description` | `/right/robot_description` |
+
+这种隔离也能避免同一 ROS 2 域内的其他机器人向全局 `/robot_description` 发布
+URDF 时覆盖 Linker Hand 的 RobotModel。单手模式的 TF 帧同样带有 `left/` 或
+`right/` 前缀。
 
 三个入口均默认显示镜像 MediaPipe 预览。需要使用其他摄像头时可追加
 `device:=/dev/videoN`。单手模式可用 `mediapipe_show_preview:=false` 关闭预览；

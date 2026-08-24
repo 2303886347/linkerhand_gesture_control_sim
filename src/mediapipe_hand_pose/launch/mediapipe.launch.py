@@ -23,6 +23,21 @@ def generate_launch_description():
             description='输入 ROS 2 图像话题。',
         ),
         DeclareLaunchArgument(
+            'pose_topic',
+            default_value='/mediapipe/hand_pose',
+            description='完整手部姿态输出话题。',
+        ),
+        DeclareLaunchArgument(
+            'angles_topic',
+            default_value='/mediapipe/human_joint_angles',
+            description='人体关节角输出话题。',
+        ),
+        DeclareLaunchArgument(
+            'debug_image_topic',
+            default_value='/mediapipe/debug_image',
+            description='带标注调试图像输出话题。',
+        ),
+        DeclareLaunchArgument(
             'target_hand',
             default_value='any',
             description='目标手：any、left 或 right。',
@@ -81,6 +96,11 @@ def generate_launch_description():
                 str(package_share / 'config' / 'hand_pose.yaml'),
                 {
                     'input_topic': LaunchConfiguration('input_topic'),
+                    'pose_topic': LaunchConfiguration('pose_topic'),
+                    'angles_topic': LaunchConfiguration('angles_topic'),
+                    'debug_image_topic': LaunchConfiguration(
+                        'debug_image_topic'
+                    ),
                     'target_hand': LaunchConfiguration('target_hand'),
                     'input_mirrored': ParameterValue(
                         LaunchConfiguration('input_mirrored'), value_type=bool
