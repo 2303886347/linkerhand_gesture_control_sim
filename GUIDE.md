@@ -251,7 +251,7 @@ ros2 launch linkerhand_retargeting retargeting.launch.py
 
 ## 6. ROS 2 节点与话题
 
-### 6.1 双手节点
+### 6.1 节点命名
 
 ```bash
 ros2 node list | sort
@@ -272,7 +272,9 @@ ros2 node list | sort
 /rviz2_both_hands
 ```
 
-### 6.2 双手话题
+单手入口只启动对应一侧的节点；双手入口同时启动以上左右两组节点。
+
+### 6.2 左右手话题
 
 | 功能 | 左手 | 右手 |
 | --- | --- | --- |
@@ -280,8 +282,13 @@ ros2 node list | sort
 | 人体关节角 | `/left/mediapipe/human_joint_angles` | `/right/mediapipe/human_joint_angles` |
 | 调试图像 | `/left/mediapipe/debug_image` | `/right/mediapipe/debug_image` |
 | 映射目标 | `/left/linkerhand/target_joint_states` | `/right/linkerhand/target_joint_states` |
+| 重定向状态 | `/left/linkerhand/retargeting_status` | `/right/linkerhand/retargeting_status` |
 | RViz 关节 | `/left/joint_states` | `/right/joint_states` |
 | 模型描述 | `/left/robot_description` | `/right/robot_description` |
+
+左手、右手和双手一体化入口都遵循这张表。RobotModel 不再读取全局
+`/robot_description`，因此不会被同一 ROS 2 域中的 MentorPi 或其他机器人模型
+覆盖；TF 帧分别使用 `left/` 和 `right/` 前缀。
 
 检查关节：
 

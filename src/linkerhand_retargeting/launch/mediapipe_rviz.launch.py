@@ -29,6 +29,11 @@ def generate_launch_description():
                     'camera_fps': LaunchConfiguration('camera_fps'),
                     'processing_fps': LaunchConfiguration('processing_fps'),
                     'target_hand': LaunchConfiguration('target_hand'),
+                    'pose_topic': LaunchConfiguration('pose_topic'),
+                    'angles_topic': LaunchConfiguration('angles_topic'),
+                    'debug_image_topic': LaunchConfiguration(
+                        'debug_image_topic'
+                    ),
                     'camera_show_preview': 'false',
                     'mediapipe_show_preview': LaunchConfiguration(
                         'mediapipe_show_preview'
@@ -55,6 +60,12 @@ def generate_launch_description():
                 ),
                 launch_arguments={
                     'parameters_file': LaunchConfiguration('parameters_file'),
+                    'input_topic': LaunchConfiguration('pose_topic'),
+                    'output_topic': LaunchConfiguration('target_joint_topic'),
+                    'status_topic': LaunchConfiguration('status_topic'),
+                    'joint_states_topic': LaunchConfiguration(
+                        'joint_states_topic'
+                    ),
                     'use_rviz_adapter': 'true',
                 }.items(),
             )
@@ -77,6 +88,9 @@ def generate_launch_description():
                 launch_arguments={
                     'use_gui': 'false',
                     'use_rviz': LaunchConfiguration('use_rviz'),
+                    'joint_states_topic': LaunchConfiguration(
+                        'joint_states_topic'
+                    ),
                 }.items(),
             )
         ],
@@ -104,6 +118,36 @@ def generate_launch_description():
             'target_hand',
             default_value='left',
             description='跟踪目标手：left、right 或 any。',
+        ),
+        DeclareLaunchArgument(
+            'pose_topic',
+            default_value='/left/mediapipe/hand_pose',
+            description='完整手部姿态输出话题。',
+        ),
+        DeclareLaunchArgument(
+            'angles_topic',
+            default_value='/left/mediapipe/human_joint_angles',
+            description='人体关节角输出话题。',
+        ),
+        DeclareLaunchArgument(
+            'debug_image_topic',
+            default_value='/left/mediapipe/debug_image',
+            description='带标注调试图像输出话题。',
+        ),
+        DeclareLaunchArgument(
+            'target_joint_topic',
+            default_value='/left/linkerhand/target_joint_states',
+            description='机械手独立关节目标话题。',
+        ),
+        DeclareLaunchArgument(
+            'status_topic',
+            default_value='/left/linkerhand/retargeting_status',
+            description='重定向状态话题。',
+        ),
+        DeclareLaunchArgument(
+            'joint_states_topic',
+            default_value='/left/joint_states',
+            description='RViz 完整关节状态话题。',
         ),
         DeclareLaunchArgument(
             'description_package',

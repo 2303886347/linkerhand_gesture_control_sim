@@ -23,7 +23,7 @@ Visualization Manager:
         Durability Policy: Transient Local
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /robot_description
+        Value: /left/robot_description
       Enabled: true
       Name: RobotModel
       Update Interval: 0
@@ -31,7 +31,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 42; 42; 46
-    Fixed Frame: base_footprint
+    Fixed Frame: left/base_footprint
     Frame Rate: 30
   Name: root
   Tools:
@@ -52,7 +52,7 @@ Visualization Manager:
         Z: 0.16
       Name: Current View
       Pitch: 0.45
-      Target Frame: base_footprint
+      Target Frame: left/base_footprint
       Yaw: 0.8
 Window Geometry:
   Height: 900
