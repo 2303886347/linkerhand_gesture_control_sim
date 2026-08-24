@@ -21,6 +21,12 @@ def generate_launch_description():
             ),
             launch_arguments={
                 'target_hand': 'left',
+                'pose_topic': '/left/mediapipe/hand_pose',
+                'angles_topic': '/left/mediapipe/human_joint_angles',
+                'debug_image_topic': '/left/mediapipe/debug_image',
+                'target_joint_topic': '/left/linkerhand/target_joint_states',
+                'status_topic': '/left/linkerhand/retargeting_status',
+                'joint_states_topic': '/left/joint_states',
                 'description_package': 'linkerhand_l30_left_description',
                 'parameters_file': str(
                     package_share / 'config' / 'retargeting_left.yaml'
