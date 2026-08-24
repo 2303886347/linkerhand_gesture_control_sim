@@ -26,6 +26,7 @@ Visualization Manager:
         Value: /left/robot_description
       Enabled: true
       Name: RobotModel
+      TF Prefix: left
       Update Interval: 0
       Visual Enabled: true
   Enabled: true
