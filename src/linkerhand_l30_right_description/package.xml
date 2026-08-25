@@ -3,7 +3,7 @@
 <package format="3">
   <name>linkerhand_l30_right_description</name>
   <version>6.0.0</version>
-  <description>Linker Hand L30 v6 右手的 ROS 2 模型描述与可视化包。</description>
+  <description>Linker Hand L30 v6 右手的 ROS 2 URDF、mesh、RViz 2 与 Gazebo Sim 模型包。</description>
 
   <maintainer email="2303886347@qq.com">2303886347</maintainer>
   <license>BSD-3-Clause</license>

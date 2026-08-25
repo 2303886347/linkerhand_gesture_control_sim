@@ -2,7 +2,7 @@
 
 # LinkerHand Gesture Control Sim
 
-基于 ROS 2、MediaPipe、RViz 2 与 Gazebo Sim 的 Linker Hand L30 手势同步仿真工作空间
+使用普通 USB 摄像头体验 Linker Hand L30 实时手势同步的 ROS 2 仿真项目
 
 [![ROS 2](https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/humble/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://releases.ubuntu.com/22.04/)
@@ -10,6 +10,8 @@
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
+[![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#项目完成状态)
+[![Experience](https://img.shields.io/badge/experience-simulation_first-00A67E)](#项目简介)
 [![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
@@ -22,28 +24,32 @@
 
 <div align="center">
 
-双手手势 MediaPipe → 角度映射 → RViz 同步演示：
+<a href="docs/assets/linkhand_demo.mp4">
+  <img src="docs/assets/linkhand_demo_cover.jpg" alt="Linker Hand 双手手势同步演示" width="760">
+</a>
 
-
-https://github.com/user-attachments/assets/42c7ba90-533e-4c96-a445-143ad9f55d39
-
-
+**点击图片播放 MediaPipe → 角度重定向 → RViz 同步演示**
 
 </div>
 
 ## 项目简介
 
-该项目将 USB 摄像头画面转换为 Linker Hand L30 仿真关节目标：MediaPipe 负责识别
-人手关键点和语义关节角，重定向节点完成左右手独立标定、角度映射、滤波与限速，
-最后驱动 RViz 2 中的左手、右手或双手模型，或驱动 Gazebo Sim 中的单左手、单右手模型。
+LinkerHand Gesture Control Sim 是一个可直接运行的视觉手势仿真项目。它让用户通过
+普通 USB 摄像头快速体验 Linker Hand L30 的实时手势同步、角度重定向和仿真交互。
 
-Gazebo 阶段使用项目内置的在线多关节插件完成运动学位置反馈同步，适合验证视觉动作
-映射与实时跟随。它不是基于真实电机参数的力矩闭环，暂不用于接触抓取、力矩分析或
-真实机械手控制。
+系统从摄像头获取画面，使用 MediaPipe 检测左右手关键点并计算人体关节角，再经过
+左右手独立标定、角度重定向、One Euro、死区/迟滞、EMA 和速度限制，最终驱动
+RViz 2 或 Gazebo Sim 中的 Linker Hand 模型。RViz 支持左手、右手和双手显示；
+Gazebo 支持单左手和单右手位置同步，并反馈实际仿真关节状态。
+
+项目定位是仿真优先的灵巧手视觉交互、ROS 2 学习和手势算法体验。它完整覆盖摄像头
+采集、MediaPipe 感知、角度处理到 RViz/Gazebo 显示的数据链路。
 
 ## 核心能力
 
-- 左手、右手、双手三套一键启动入口。
+- 普通 USB 摄像头驱动的实时灵巧手仿真体验。
+- RViz 左手、右手、双手三套一键启动入口。
+- Gazebo 单左手、单右手一键启动入口。
 - 双手模式只打开一次摄像头，左右识别、标定、话题和 TF 完全隔离。
 - 左右手使用独立的实测输入范围与机械手角度映射。
 - 调试画面支持镜像显示，不改变左右手判定和输出数据。
@@ -51,7 +57,7 @@ Gazebo 阶段使用项目内置的在线多关节插件完成运动学位置反�
 - One Euro、关节死区/迟滞、EMA 和关节速度限制。
 - 目标丢失后短暂保持，并平滑返回安全开掌姿态。
 - L30 左右手 URDF、mesh、RViz 2 和 Gazebo Sim 描述包。
-- Gazebo 单左手、单右手完整视觉同步入口与 60 Hz 实际关节状态反馈。
+- Gazebo 视觉同步与 60 Hz 实际关节状态反馈。
 - Gazebo 输入完整性检查、关节限速和左右手独立模型参数校正。
 - 中文源码注释、中文运行日志以及中英双语项目文档。
 
@@ -101,17 +107,23 @@ git clone https://github.com/2303886347/linkerhand_gesture_control_sim.git \
   ~/linkerhand_ros2_ws
 cd ~/linkerhand_ros2_ws
 source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+python3 -m pip install 'mediapipe==0.10.9'
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-### RViz 运行模式
+准备电脑、USB 摄像头和 ROS 2 图形环境后，即可运行完整手势仿真链路。
 
-| 模式 | 命令 | 标定文件 |
+### 支持的运行模式
+
+| 显示端 | 模式 | 命令 |
 | --- | --- | --- |
-| 左手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` | `retargeting_left.yaml` |
-| 右手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` | `retargeting_right.yaml` |
-| 双手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py` | 左右独立加载 |
+| RViz 2 | 左手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` |
+| RViz 2 | 右手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` |
+| RViz 2 | 双手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py` |
+| Gazebo Sim | 左手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py` |
+| Gazebo Sim | 右手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py` |
 
 双手模式默认每侧以 10 FPS 运行一个 MediaPipe 实例。CPU 余量充足时可以提高：
 
@@ -123,20 +135,8 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 更完整的设备检查、参数解释、标定范围、滤波调节和故障排查见
 [GUIDE.md](GUIDE.md)。
 
-### Gazebo 运行模式
-
-Gazebo 当前分别支持单左手和单右手，启动后会同时打开摄像头预览和 Gazebo GUI：
-
-```bash
-# 左手
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
-
-# 右手
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
-```
-
-摄像头不是 `/dev/video0` 时追加 `device:=/dev/video2`。本阶段暂未提供双手 Gazebo
-入口；双手 RViz 模式不受影响。
+Gazebo 入口会同时打开 MediaPipe 预览和 Gazebo GUI。摄像头不是 `/dev/video0` 时，
+在任意启动命令后追加 `device:=/dev/video2`。
 
 ## ROS 2 包
 
@@ -149,28 +149,30 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
 | `linkerhand_l30_left_description` | L30 左手 URDF、mesh、RViz/Gazebo 启动 | [README](src/linkerhand_l30_left_description/README.md) |
 | `linkerhand_l30_right_description` | L30 v6 右手 URDF、mesh、RViz/Gazebo 启动 | [README](src/linkerhand_l30_right_description/README.md) |
 | `linkerhand_gazebo_control` | 轨迹适配、动态 URDF、状态节流和 Gazebo 启动 | [README](src/linkerhand_gazebo_control/README.md) |
-| `linkerhand_gazebo_plugin` | Gazebo 在线多关节运动学位置同步插件 | `src/linkerhand_gazebo_plugin` |
+| `linkerhand_gazebo_plugin` | Gazebo 在线多关节运动学位置同步插件 | [README](src/linkerhand_gazebo_plugin/README.md) |
 
 ## 分支说明
 
-`main` 是唯一的完整开发基线，同时包含三种运行模式。以下分支只作为对应模式的演示
-入口，核心代码仍从 `main` 同步，避免左右手实现长期分叉。
+`main` 是完整、稳定的项目基线，包含所有已交付功能。以下分支用于突出对应演示入口，
+核心代码仍从 `main` 同步，避免左右手实现分叉。
 
 | 分支 | 用途 |
 | --- | --- |
-| [`main`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/main) | 完整功能与持续开发 |
+| [`main`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/main) | 完整稳定版本 |
 | [`left-hand`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/left-hand) | 左手演示配置 |
 | [`right-hand`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/right-hand) | 右手演示配置 |
 | [`both-hands`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/both-hands) | 双手演示配置 |
 
 ## 滤波
 
-当前链路不是简单的固定低通，而是四层处理：
+手势链路不是简单的固定低通，而是四层稳定化处理：
 
 1. One Euro 对调试骨架关键点和人体关节角进行自适应滤波。
 2. 关节死区与迟滞锁住静止小噪声，并在真实动作越过启动阈值后恢复跟随。
 3. EMA 对消抖后的机械手目标再次平滑。
 4. 速度限制抑制异常的大幅跳变，并单独控制目标丢失后的回零速度。
+
+同一套稳定化结果同时供 RViz 和 Gazebo 使用，因此两种显示端具有一致的动作响应。
 
 推荐从以下参数开始调整静止抖动：
 
@@ -192,7 +194,7 @@ colcon test-result --verbose
 
 当前验证基线：`40 tests, 0 errors, 0 failures, 0 skipped`。
 
-## 路线图
+## 项目完成状态
 
 - [x] USB 摄像头 ROS 2 图像发布
 - [x] MediaPipe 左右手关键点与关节角
@@ -200,10 +202,10 @@ colcon test-result --verbose
 - [x] 独立标定、One Euro、EMA 和回零限速
 - [x] 可配置的左右手独立关节死区与迟滞消抖
 - [x] Gazebo 单左手、单右手运动学位置反馈同步
-- [ ] Gazebo 双手同步与简化碰撞模型
-- [ ] 基于可信电机、惯量和摩擦参数的动力学闭环
-- [ ] 真实 Linker Hand 控制适配器
-- [ ] 录制、回放和定量抖动评估工具
+
+以上功能构成项目的完整交付范围。项目专注于“普通摄像头驱动灵巧手仿真显示”，适合
+手势可视化、ROS 2 学习、角度映射调试和交互演示。Gazebo 使用运动学位置反馈同步；
+面向接触物理的应用可以在现有接口上扩展简化碰撞体和 effort 控制器。
 
 ## 贡献
 

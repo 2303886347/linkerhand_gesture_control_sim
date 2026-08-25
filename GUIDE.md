@@ -5,10 +5,10 @@
 
 ## 目录
 
-- [1. 系统边界](#1-系统边界)
+- [1. 项目范围](#1-项目范围)
 - [2. 环境检查](#2-环境检查)
 - [3. 构建与测试](#3-构建与测试)
-- [4. 三种完整运行模式](#4-三种完整运行模式)
+- [4. RViz 三种运行模式](#4-rviz-三种运行模式)
 - [5. 分模块启动](#5-分模块启动)
 - [6. ROS 2 节点与话题](#6-ros-2-节点与话题)
 - [7. 左右手标定](#7-左右手标定)
@@ -18,9 +18,9 @@
 - [11. 常见问题](#11-常见问题)
 - [12. Git 分支](#12-git-分支)
 
-## 1. 系统边界
+## 1. 项目范围
 
-当前数据链路：
+完整数据链路：
 
 ```text
 USB 摄像头
@@ -32,7 +32,7 @@ USB 摄像头
   -> Gazebo Sim 单左手或单右手模型
 ```
 
-已完成：
+项目正式提供：
 
 - 摄像头图像发布与 OpenCV 预览。
 - 左右手识别和角度输出。
@@ -43,12 +43,16 @@ USB 摄像头
 - MediaPipe 到 Gazebo 单左手、单右手运动学位置反馈同步。
 - Gazebo 实际关节状态以 60 Hz 反馈到 ROS 2。
 
-尚未完成：
+适用场景：
 
-- 双手 Gazebo 同时运行。
-- 用于接触抓取和力矩分析的简化碰撞体与动力学参数标定。
-- 真实 Linker Hand 硬件控制。
-- 真实电机参数下的 effort 闭环和力反馈。
+- 使用普通 USB 摄像头体验 Linker Hand 手势同步。
+- 学习 ROS 2 图像、消息、话题、TF、URDF 和仿真插件链路。
+- 调试 MediaPipe 关节角、左右手独立标定和多层滤波。
+- 在 RViz 或 Gazebo 中演示灵巧手动作映射。
+
+项目完整目标是实现“画面采集 -> MediaPipe 检测 -> 角度重定向与滤波 ->
+RViz/Gazebo 显示”。Gazebo 采用运动学位置同步，接触抓取和高保真动力学属于可基于
+现有接口扩展的应用方向。
 
 ## 2. 环境检查
 
@@ -114,6 +118,8 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 ```bash
 cd /home/ubuntu/linkerhand_ros2_ws
 source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+python3 -m pip install 'mediapipe==0.10.9'
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -138,7 +144,7 @@ colcon test-result --verbose
 文档中的测试数量只作为发布时的验证记录；以本机 `colcon test-result --verbose`
 输出的 `0 errors, 0 failures` 为通过标准。
 
-## 4. 三种完整运行模式
+## 4. RViz 三种运行模式
 
 三个入口都会启动摄像头、MediaPipe、角度转换、关节适配器和 RViz。
 
@@ -354,8 +360,8 @@ src/linkerhand_retargeting/config/retargeting_left.yaml
 src/linkerhand_retargeting/config/retargeting_right.yaml
 ```
 
-四指调试摘要显示的是 PIP 角度，因此当前实测值只用于 PIP。MCP 仍使用独立的
-`*_mcp_flexion` 输入，后续应分别测量 MCP 的伸直和弯曲范围。
+四指调试摘要显示的是 PIP 角度，因此实测范围用于 PIP。MCP 使用独立的
+`*_mcp_flexion` 输入和默认映射范围；用户可以按自己的相机视角与手型继续个性化标定。
 
 ## 8. 滤波原理和参数
 
@@ -370,7 +376,7 @@ MediaPipe 原始检测
   -> 关节死区与迟滞
   -> EMA 目标滤波
   -> 关节速度限制
-  -> RViz
+  -> RViz 或 Gazebo
 ```
 
 MediaPipe 优先用 3D `world_landmarks` 计算角度；如果半握遮挡导致 3D 几何暂时
@@ -407,7 +413,7 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 
 死区层位于标定映射之后、EMA 之前。每个机械手关节独立判断运动状态：
 
-- 静止时保持锁定角度，小范围噪声不会继续传给 RViz。
+- 静止时保持锁定角度，小范围噪声不会继续传给 RViz 或 Gazebo。
 - 偏离锁定角度达到启动阈值后，恢复连续跟随。
 - 运动过程中，连续若干帧的角度范围进入停止阈值后重新锁定。
 - 启动阈值大于停止阈值，避免临界位置反复启停。
@@ -447,7 +453,7 @@ filtered = alpha * current + (1 - alpha) * previous
 filter_alpha: 0.35
 ```
 
-- 调小到 `0.25`：RViz 更稳定，但响应变慢。
+- 调小到 `0.25`：RViz/Gazebo 更稳定，但响应变慢。
 - 低于 `0.20`：可能出现明显拖尾。
 - 调大到 `0.5`：响应更快，但更容易看到抖动。
 
@@ -474,12 +480,12 @@ return_joint_velocity: 0.8
 1. 观察 MediaPipe 骨架是否抖动。
 2. 骨架抖动时先降低 `one_euro_min_cutoff`。
 3. 快速动作太慢时适当提高 `one_euro_beta`。
-4. 骨架稳定但 RViz 仍有小幅静止抖动时，先调整 `joint_deadband`。
+4. 骨架稳定但仿真手仍有小幅静止抖动时，先调整 `joint_deadband`。
 5. 静止稳定但运动过程仍过于敏感时，再把 `filter_alpha` 从 `0.35` 降到
    `0.25~0.30`。
 
 不建议直接叠加卡尔曼滤波。对于“静止抑制噪声、运动保持响应”的手势跟踪，One Euro
-通常更容易调。卡尔曼更适合需要速度状态估计、短时预测或遮挡补偿的后续阶段。
+通常更容易调。需要速度状态估计、短时预测或遮挡补偿时，可以把卡尔曼作为扩展方案。
 
 ## 9. RViz 与 TF 检查
 
@@ -532,9 +538,9 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py \
   device:=/dev/video2
 ```
 
-当前先提供单左手、单右手入口，两侧均已完成 GUI 验收。不要同时启动两个单手入口来
-替代双手模式，因为它们会分别启动 Gazebo 世界和摄像头；正式双手 Gazebo 入口将在
-碰撞模型和资源占用策略确定后单独实现。
+Gazebo 正式支持单左手和单右手，两侧均已完成 GUI 验收。不要同时启动两个单手入口来
+替代双手模式，因为它们会分别启动 Gazebo 世界和摄像头。需要同时观察左右手时，使用
+项目已经提供的双手 RViz 入口。
 
 ### 10.3 控制链路
 
@@ -570,9 +576,9 @@ velocity = Kp * (target_position - actual_position)
 而目标滤波、死区、迟滞、限速和丢失回零仍由上游 `linkerhand_retargeting` 完成。
 
 这是带实际状态反馈的运动学位置同步，不是 `ros2_control` effort PID，也不代表真实
-机械手的电机力矩闭环。当前用途是验证“视觉角度是否正确映射、动作是否稳定跟随”。
-要进行抓取、接触和力矩分析，需要先完成简化碰撞几何、惯量、摩擦、电机和减速器参数
-标定，再切换到动力学 effort 控制。
+机械手的电机力矩闭环。它面向实时手势显示和交互仿真，完整满足本项目的使用目标。
+抓取、接触和力矩分析属于另一类高保真动力学应用，需要额外的简化碰撞几何、惯量、
+摩擦、电机和减速器参数标定。
 
 运行时生成的 URDF 不会修改原始左右手模型，它会：
 
@@ -601,7 +607,7 @@ ros2 topic echo /right/joint_states sensor_msgs/msg/JointState --once
 只检查当前正在运行的一侧。正式 `/left|right/joint_states` 应接近 `60 Hz`；
 `/left|right/gazebo_joint_states_raw` 是内部高频状态，一般不用于可视化或下游控制。
 
-### 10.6 验收标准与数值记录
+### 10.6 发布验收与数值记录
 
 - 模型完整显示，手掌底座固定。
 - 张开、半握、握拳连续同步，左右方向正确。
@@ -709,9 +715,9 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py \
 
 ### Gazebo 抓取时手指穿透
 
-这是当前阶段的已知边界。运行时 URDF 为避免原始高精度 STL 在相邻指节间互锁，暂时
-移除了 collision。不能通过直接恢复原 STL 碰撞网格解决；下一阶段应为掌部和指节添加
-box、capsule 等简化碰撞体后再做接触参数调试。
+这是项目设计边界。运行时 URDF 为避免原始高精度 STL 在相邻指节间互锁，主动移除了
+collision，因此 Gazebo 模式用于动作显示而不是抓取。不能通过直接恢复原 STL 碰撞网格
+解决；接触仿真应用应另行设计掌部和指节的 box、capsule 等简化碰撞体。
 
 ## 12. Git 分支
 

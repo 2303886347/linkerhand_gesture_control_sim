@@ -7,6 +7,7 @@
 - [ ] 左手 / Left hand
 - [ ] 右手 / Right hand
 - [ ] 双手 / Both hands
+- [ ] Gazebo
 - [ ] 文档 / Documentation
 
 ## 验证 / Validation

@@ -1,35 +1,42 @@
-# Linker Hand L30 右手模型包
+# Linker Hand L30 右手模型
 
-该包由 `/home/ubuntu/Downloads/linkerhand_L30_v6_right_urdf-3112` 中的 ROS 1
-SolidWorks 导出资源迁移而来，适用于 ROS 2 Humble。包内保留右手独立几何、
-惯性、关节轴和限位，并提供 RViz 2 与 Gazebo Sim 启动入口。
+`linkerhand_l30_right_description` 提供 Linker Hand L30 v6 右手的 ROS 2 URDF、mesh、
+关节限位、RViz 2 配置和 Gazebo Sim 模型生成入口。包内保留右手独立几何、惯量、
+关节轴和运动范围。
 
-## 构建
-
-```bash
-cd /home/ubuntu/linkerhand_ros2_ws
-source /opt/ros/humble/setup.bash
-colcon build --symlink-install --packages-select linkerhand_l30_right_description
-source install/setup.bash
-```
-
-## RViz 2 显示
+## RViz 2 独立显示
 
 ```bash
 ros2 launch linkerhand_l30_right_description display.launch.py
 ```
 
-仅验证 URDF 和状态发布节点：
+该入口带关节调节界面，适合独立检查模型。完整摄像头手势同步请使用：
 
 ```bash
-ros2 launch linkerhand_l30_right_description display.launch.py \
-  use_gui:=false use_rviz:=false
+ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py
 ```
 
-## Gazebo Sim 仿真
+## Gazebo Sim 独立生成
 
 ```bash
 ros2 launch linkerhand_l30_right_description gazebo.launch.py
 ```
 
-Gazebo 启动文件目前只生成机械结构模型，尚未配置 `ros2_control` 控制接口。
+该入口只生成原始描述模型。完整摄像头到 Gazebo 同步请使用：
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+```
+
+无图形界面运行原始模型：
+
+```bash
+ros2 launch linkerhand_l30_right_description gazebo.launch.py headless:=true
+```
+
+## 构建
+
+```bash
+colcon build --symlink-install --packages-select linkerhand_l30_right_description
+source install/setup.bash
+```

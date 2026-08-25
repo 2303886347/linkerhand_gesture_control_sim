@@ -59,7 +59,7 @@ def _finger_angles(points, indices, forward, lateral, normal):
         float(np.dot(proximal_in_palm, lateral)),
         float(np.dot(proximal_in_palm, forward)),
     )
-    # 单目估计容易发生掌面法向翻转，因此第一阶段输出无符号屈曲量。
+    # 单目估计容易发生掌面法向翻转，因此使用无符号屈曲量保证输出稳定。
     flexion = math.atan2(
         abs(float(np.dot(proximal, normal))),
         float(np.linalg.norm(proximal_in_palm)),

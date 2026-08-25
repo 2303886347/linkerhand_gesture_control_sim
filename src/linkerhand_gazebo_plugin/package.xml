@@ -2,8 +2,8 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>linkerhand_gazebo_plugin</name>
-  <version>0.1.0</version>
-  <description>Linker Hand 在线多关节位置控制的 Gazebo System 插件。</description>
+  <version>1.0.0</version>
+  <description>Linker Hand 在线多关节运动学位置同步的 Gazebo System 插件。</description>
 
   <maintainer email="2303886347@qq.com">2303886347</maintainer>
   <license>Apache-2.0</license>

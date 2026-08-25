@@ -2,7 +2,7 @@
 
 # LinkerHand Gesture Control Sim
 
-A ROS 2, MediaPipe, RViz 2, and Gazebo Sim workspace for vision-driven Linker Hand L30 simulation
+A camera-driven ROS 2 project for experiencing real-time Linker Hand L30 gesture simulation
 
 [![ROS 2](https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/humble/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://releases.ubuntu.com/22.04/)
@@ -10,6 +10,8 @@ A ROS 2, MediaPipe, RViz 2, and Gazebo Sim workspace for vision-driven Linker Ha
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
+[![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#project-status)
+[![Experience](https://img.shields.io/badge/experience-simulation_first-00A67E)](#overview)
 [![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
@@ -30,20 +32,25 @@ A ROS 2, MediaPipe, RViz 2, and Gazebo Sim workspace for vision-driven Linker Ha
 
 ## Overview
 
-This project turns frames from a USB camera into joint targets for Linker Hand L30
-simulation. MediaPipe detects hand landmarks and semantic joint angles. A dedicated
-retargeting layer applies per-hand calibration, angle mapping, adaptive filtering, and
-velocity limits before driving a left, right, or dual-hand model in RViz 2, or a single
-left or right hand in Gazebo Sim.
+LinkerHand Gesture Control Sim is a ready-to-run visual gesture simulation project. It
+uses an ordinary USB camera to provide a direct experience of real-time Linker Hand L30
+gesture synchronization, angle retargeting, and simulation interaction.
 
-The Gazebo stage uses a project-owned online multi-joint plugin for kinematic position
-synchronization with measured joint-state feedback. It validates visual retargeting and
-real-time motion, but it is not a torque loop identified from real actuator parameters
-and is not intended for contact, grasping, or force analysis yet.
+The system captures camera frames, detects left or right hand landmarks with MediaPipe,
+computes semantic human joint angles, and applies independent calibration, retargeting,
+One Euro filtering, deadband/hysteresis, EMA smoothing, and velocity limits. The final
+joint targets drive left, right, or dual-hand models in RViz 2, or a single left or right
+hand in Gazebo Sim with measured simulation joint-state feedback.
+
+The project is designed around a simulation-first experience for dexterous-hand
+interaction, ROS 2 learning, and gesture-algorithm demonstrations. It delivers the
+complete pipeline from camera capture and MediaPipe perception to RViz/Gazebo display.
 
 ## Highlights
 
-- One-command launchers for left-hand, right-hand, and dual-hand operation.
+- Real-time dexterous-hand simulation driven by a standard USB camera.
+- One-command RViz launchers for left-hand, right-hand, and dual-hand operation.
+- One-command Gazebo launchers for single-left and single-right operation.
 - A single camera shared by isolated left and right perception pipelines.
 - Independent calibration, topics, joint states, and TF trees for both hands.
 - Mirrored preview without changing handedness classification or published data.
@@ -96,39 +103,31 @@ git clone https://github.com/2303886347/linkerhand_gesture_control_sim.git \
   ~/linkerhand_ros2_ws
 cd ~/linkerhand_ros2_ws
 source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+python3 -m pip install 'mediapipe==0.10.9'
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-### Launch modes
+The complete gesture simulation pipeline can be launched with a computer, a USB camera,
+and a working ROS 2 graphical environment.
 
-```bash
-# Left hand
-ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py
+### Supported modes
 
-# Right hand
-ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py
-
-# Both hands in one RViz instance
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
-```
+| Viewer | Mode | Command |
+| --- | --- | --- |
+| RViz 2 | Left | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` |
+| RViz 2 | Right | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` |
+| RViz 2 | Both | `ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py` |
+| Gazebo Sim | Left | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py` |
+| Gazebo Sim | Right | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py` |
 
 The dual-hand launcher starts one camera and two MediaPipe workers at 10 FPS per side.
 See [GUIDE.md](GUIDE.md) for camera checks, calibration, filter tuning, ROS topic
 inspection, and troubleshooting.
 
-### Gazebo modes
-
-```bash
-# Left hand
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
-
-# Right hand
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
-```
-
-Append `device:=/dev/video2` when the camera is not `/dev/video0`. Dual-hand Gazebo is
-not included in this milestone; dual-hand RViz remains available.
+Gazebo launchers open both the MediaPipe preview and the Gazebo GUI. Append
+`device:=/dev/video2` to any command when the camera is not `/dev/video0`.
 
 ## Packages
 
@@ -145,12 +144,12 @@ not included in this milestone; dual-hand RViz remains available.
 
 ## Branches
 
-`main` remains the canonical branch containing all three modes. The focused branches
-are lightweight demonstration profiles and do not maintain separate implementations.
+`main` is the complete stable project baseline. The focused branches highlight a
+specific demonstration entry point without maintaining separate implementations.
 
 | Branch | Purpose |
 | --- | --- |
-| [`main`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/main) | Complete workspace and active development |
+| [`main`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/main) | Complete stable release |
 | [`left-hand`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/left-hand) | Left-hand demo profile |
 | [`right-hand`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/right-hand) | Right-hand demo profile |
 | [`both-hands`](https://github.com/2303886347/linkerhand_gesture_control_sim/tree/both-hands) | Dual-hand demo profile |
@@ -164,6 +163,9 @@ The processing chain combines four mechanisms:
    the start threshold.
 3. EMA smoothing after deadband stabilization.
 4. Slew-rate limiting for large changes and a separate safe-return velocity.
+
+The same stabilized targets feed both RViz and Gazebo, giving both viewers consistent
+motion behavior.
 
 A useful starting point for stronger static stabilization is:
 
@@ -184,7 +186,7 @@ colcon test-result --verbose
 
 Current baseline: `40 tests, 0 errors, 0 failures, 0 skipped`.
 
-## Roadmap
+## Project Status
 
 - [x] USB camera ROS 2 publisher
 - [x] MediaPipe hand landmarks and semantic angles
@@ -192,10 +194,12 @@ Current baseline: `40 tests, 0 errors, 0 failures, 0 skipped`.
 - [x] Independent calibration and adaptive filtering
 - [x] Configurable per-hand joint deadband and hysteresis
 - [x] Single-left and single-right Gazebo kinematic position synchronization
-- [ ] Dual-hand Gazebo and simplified collision geometry
-- [ ] Dynamic closed-loop control with identified actuator and model parameters
-- [ ] Physical Linker Hand adapter
-- [ ] Recording, playback, and quantitative jitter evaluation
+
+These features define the complete project scope. The project focuses on driving a
+dexterous-hand simulation from an ordinary camera for gesture visualization, ROS 2
+learning, retargeting experiments, and interactive demonstrations. Gazebo uses kinematic
+position synchronization; contact-oriented applications can extend the existing
+interfaces with simplified collision geometry and effort controllers.
 
 ## Contributing
 
