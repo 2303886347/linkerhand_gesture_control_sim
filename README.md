@@ -11,7 +11,7 @@
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
 [![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#项目完成状态)
-[![Experience](https://img.shields.io/badge/experience-simulation_first-00A67E)](#项目简介)
+[![Experience](https://img.shields.io/badge/experience-try_it_first-00A67E)](#项目简介)
 [![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
@@ -42,8 +42,10 @@ LinkerHand Gesture Control Sim 是一个可直接运行的视觉手势仿真项�
 RViz 2 或 Gazebo Sim 中的 Linker Hand 模型。RViz 支持左手、右手和双手显示；
 Gazebo 支持单左手和单右手位置同步，并反馈实际仿真关节状态。
 
-项目定位是仿真优先的灵巧手视觉交互、ROS 2 学习和手势算法体验。它完整覆盖摄像头
-采集、MediaPipe 感知、角度处理到 RViz/Gazebo 显示的数据链路。
+项目以“优先体验 Linker Hand 实时手势同步”为核心定位。用户可以通过 RViz 2 和
+Gazebo Sim 直观体验摄像头手势驱动灵巧手模型的完整过程，同时用于 ROS 2 学习、
+角度映射调试和手势算法验证。项目完整覆盖摄像头采集、MediaPipe 感知、角度处理到
+仿真显示的数据链路。
 
 ## 核心能力
 
