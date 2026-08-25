@@ -2,14 +2,15 @@
 
 # LinkerHand Gesture Control Sim
 
-A ROS 2, MediaPipe, and RViz 2 workspace for vision-driven Linker Hand L30 simulation
+A ROS 2, MediaPipe, RViz 2, and Gazebo Sim workspace for vision-driven Linker Hand L30 simulation
 
 [![ROS 2](https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/humble/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://releases.ubuntu.com/22.04/)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
-[![Tests](https://img.shields.io/badge/tests-34_passing-brightgreen)](#validation)
+[![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
+[![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
@@ -32,11 +33,13 @@ A ROS 2, MediaPipe, and RViz 2 workspace for vision-driven Linker Hand L30 simul
 This project turns frames from a USB camera into joint targets for Linker Hand L30
 simulation. MediaPipe detects hand landmarks and semantic joint angles. A dedicated
 retargeting layer applies per-hand calibration, angle mapping, adaptive filtering, and
-velocity limits before publishing the left, right, or dual-hand state to RViz 2.
+velocity limits before driving a left, right, or dual-hand model in RViz 2, or a single
+left or right hand in Gazebo Sim.
 
-The current milestone covers the complete camera-to-RViz loop. It does not command
-physical hardware, and gesture targets are not yet connected to Gazebo controllers.
-The description packages do include standalone RViz and Gazebo Sim model launchers.
+The Gazebo stage uses a project-owned online multi-joint plugin for kinematic position
+synchronization with measured joint-state feedback. It validates visual retargeting and
+real-time motion, but it is not a torque loop identified from real actuator parameters
+and is not intended for contact, grasping, or force analysis yet.
 
 ## Highlights
 
@@ -48,6 +51,8 @@ The description packages do include standalone RViz and Gazebo Sim model launche
 - One Euro filtering, joint deadband/hysteresis, EMA, and slew-rate limiting.
 - Hold-on-dropout behavior followed by a smooth return to the safe open pose.
 - ROS 2-ready URDF, meshes, RViz 2, and Gazebo Sim description packages.
+- Complete single-left and single-right Gazebo pipelines with 60 Hz joint-state feedback.
+- Full-target validation, joint speed limits, and independent model correction per hand.
 - Chinese source comments and logs with bilingual repository documentation.
 
 ## Architecture
@@ -61,10 +66,15 @@ flowchart LR
     MPR --> FR[One Euro Filter]
     FL --> RL[Left Retargeting]
     FR --> RR[Right Retargeting]
-    RL --> JL["/left/joint_states"]
-    RR --> JR["/right/joint_states"]
-    JL --> RVIZ[RViz 2]
-    JR --> RVIZ
+    RL --> TL["/left/linkerhand/target_joint_states"]
+    RR --> TR["/right/linkerhand/target_joint_states"]
+    TL --> RVIZ[RViz 2 Adapter]
+    TR --> RVIZ
+    TL --> GZA[Gazebo Trajectory Adapter]
+    TR --> GZA
+    GZA --> GZP[Online Joint Plugin]
+    GZP --> GZ[Gazebo Sim]
+    GZ --> JS[60 Hz Joint States]
 ```
 
 ## Quick Start
@@ -76,7 +86,8 @@ flowchart LR
 - Python 3.10
 - MediaPipe, OpenCV, and NumPy
 - A USB camera exposed as `/dev/video*`
-- RViz 2; Gazebo Sim is optional
+- RViz 2
+- Gazebo Sim 6, `ros_gz_sim`, and `ros_gz_bridge` for Gazebo operation
 
 ### Clone and build
 
@@ -106,6 +117,19 @@ The dual-hand launcher starts one camera and two MediaPipe workers at 10 FPS per
 See [GUIDE.md](GUIDE.md) for camera checks, calibration, filter tuning, ROS topic
 inspection, and troubleshooting.
 
+### Gazebo modes
+
+```bash
+# Left hand
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
+
+# Right hand
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+```
+
+Append `device:=/dev/video2` when the camera is not `/dev/video0`. Dual-hand Gazebo is
+not included in this milestone; dual-hand RViz remains available.
+
 ## Packages
 
 | Package | Responsibility |
@@ -116,6 +140,8 @@ inspection, and troubleshooting.
 | `linkerhand_retargeting` | Calibration, mapping, EMA, rate limits, and RViz adapters |
 | `linkerhand_l30_left_description` | Left L30 URDF, meshes, RViz, and Gazebo launchers |
 | `linkerhand_l30_right_description` | Right L30 v6 URDF, meshes, RViz, and Gazebo launchers |
+| `linkerhand_gazebo_control` | Trajectory adapter, runtime URDF, state throttle, and Gazebo launchers |
+| `linkerhand_gazebo_plugin` | Online multi-joint kinematic position synchronization plugin |
 
 ## Branches
 
@@ -152,11 +178,11 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 ```bash
 source /opt/ros/humble/setup.bash
 source install/setup.bash
-colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
+colcon test
 colcon test-result --verbose
 ```
 
-Current baseline: `34 tests, 0 errors, 0 failures`.
+Current baseline: `40 tests, 0 errors, 0 failures, 0 skipped`.
 
 ## Roadmap
 
@@ -165,7 +191,9 @@ Current baseline: `34 tests, 0 errors, 0 failures`.
 - [x] Left, right, and dual-hand RViz synchronization
 - [x] Independent calibration and adaptive filtering
 - [x] Configurable per-hand joint deadband and hysteresis
-- [ ] Gazebo controller synchronization
+- [x] Single-left and single-right Gazebo kinematic position synchronization
+- [ ] Dual-hand Gazebo and simplified collision geometry
+- [ ] Dynamic closed-loop control with identified actuator and model parameters
 - [ ] Physical Linker Hand adapter
 - [ ] Recording, playback, and quantitative jitter evaluation
 
