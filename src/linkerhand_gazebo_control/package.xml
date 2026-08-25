@@ -2,8 +2,8 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>linkerhand_gazebo_control</name>
-  <version>0.1.0</version>
-  <description>Linker Hand L30 的 Gazebo Sim 在线关节同步控制适配。</description>
+  <version>1.0.0</version>
+  <description>把 Linker Hand 手势关节目标稳定同步到 Gazebo Sim 并反馈仿真状态。</description>
 
   <maintainer email="2303886347@qq.com">2303886347</maintainer>
   <license>Apache-2.0</license>

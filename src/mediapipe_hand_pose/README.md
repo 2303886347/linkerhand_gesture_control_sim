@@ -1,82 +1,74 @@
 # MediaPipe 手部姿态识别
 
-该包订阅现有 USB 摄像头 ROS 2 图像话题，通过 MediaPipe Hands 输出手部
-关键点、人体语义关节角和标注图像。感知结果不绑定具体机械手关节，后续由
-独立的角度映射与滤波节点转换为 Linker Hand 控制目标。
+`mediapipe_hand_pose` 是项目的视觉感知包。它订阅 USB 摄像头的 ROS 2 图像，检测
+左手或右手的 21 个关键点，计算人体语义关节角，并发布带骨架和角度摘要的调试画面。
 
-## 依赖
+## 提供的能力
 
-当前环境使用 MediaPipe 0.10.9。由于 ROS 2 Humble 的 rosdep 没有
-`python3-mediapipe` 规则，需要通过 pip 提供：
+- 按 `left`、`right` 或 `any` 筛选目标手。
+- 输出图像关键点、世界关键点、左右手置信度和人体关节角。
+- 调试画面支持自拍镜像，不改变左右手判定或输出数据。
+- 3D 关键点短时退化时回退到滤波后的图像关键点。
+- 对预览骨架和人体关节角启用 One Euro 自适应滤波。
+- 支持限制 MediaPipe 处理帧率，便于在双手模式下控制 CPU 占用。
+
+## 安装 MediaPipe
+
+项目验证版本为 MediaPipe `0.10.9`：
 
 ```bash
 python3 -m pip install 'mediapipe==0.10.9'
 ```
 
-## 构建
+## 单独运行感知链路
 
-```bash
-cd /home/ubuntu/linkerhand_ros2_ws
-colcon build --symlink-install --packages-up-to mediapipe_hand_pose
-source install/setup.bash
-```
-
-## 一键启动摄像头和识别
+一键启动摄像头和 MediaPipe：
 
 ```bash
 ros2 launch mediapipe_hand_pose pipeline.launch.py
 ```
 
-默认只显示 MediaPipe 标注窗口，不显示未处理的摄像头窗口。分别控制两个窗口：
-
-```bash
-ros2 launch mediapipe_hand_pose pipeline.launch.py \
-  camera_show_preview:=false mediapipe_show_preview:=true
-```
-
-标注窗口和 `/mediapipe/debug_image` 默认以自拍镜像方式显示。该镜像只影响调试
-画面，不改变原始摄像头话题、左右手判定和关节角数据。需要原方向显示时：
-
-```bash
-ros2 launch mediapipe_hand_pose pipeline.launch.py mirror_preview:=false
-```
-
-无预览窗口运行：
-
-```bash
-ros2 launch mediapipe_hand_pose pipeline.launch.py mediapipe_show_preview:=false
-```
-
-只启动 MediaPipe 节点，使用已经存在的摄像头话题：
+只启动 MediaPipe，订阅已经存在的 `/usb_camera/image_raw`：
 
 ```bash
 ros2 launch mediapipe_hand_pose mediapipe.launch.py
 ```
 
+常用参数：
+
+```bash
+ros2 launch mediapipe_hand_pose pipeline.launch.py \
+  device:=/dev/video2 \
+  target_hand:=left \
+  mediapipe_show_preview:=true \
+  mirror_preview:=true \
+  one_euro_min_cutoff:=0.8 \
+  one_euro_beta:=0.3
+```
+
 ## 输出话题
 
-- `/mediapipe/hand_pose`：完整 `hand_pose_msgs/HandPose` 感知结果。
-- `/mediapipe/human_joint_angles`：检测成功时发布标准 `sensor_msgs/JointState`。
-- `/mediapipe/debug_image`：带关键点、置信度、耗时和角度摘要的图像。
+| 话题 | 类型 | 内容 |
+| --- | --- | --- |
+| `/mediapipe/hand_pose` | `hand_pose_msgs/HandPose` | 完整检测结果 |
+| `/mediapipe/human_joint_angles` | `sensor_msgs/JointState` | 人体语义关节角 |
+| `/mediapipe/debug_image` | `sensor_msgs/Image` | 带骨架和角度的调试图像 |
 
-角度统一使用弧度。四指分别输出 MCP 侧摆、MCP 屈曲、PIP 屈曲和 DIP
-屈曲；拇指输出 CMC 外展、CMC 屈曲、MCP 屈曲和 IP 屈曲，共 20 个角度。
+角度话题按 ROS 标准使用弧度。四指输出 MCP 侧摆、MCP 屈曲、PIP 和 DIP 屈曲；
+拇指输出 CMC 外展、CMC 屈曲、MCP 屈曲和 IP 屈曲。
 
-角度计算优先使用 MediaPipe 的 3D `world_landmarks`。半握遮挡导致 3D 几何
-暂时退化、但图像骨架仍有效时，节点会自动回退到滤波后的图像关键点，避免发布
-空角度并让下游误触发安全回零。
+## One Euro 滤波
 
-## One Euro 消抖
+One Euro 在静止时增强平滑，在动作加快时提高响应速度：
 
-默认对预览骨架关键点和最终人体关节角启用 One Euro 自适应低通。静止时会
-抑制摄像头和 MediaPipe 的小幅抖动，动作加快时会自动降低平滑强度，减少跟手
-延迟。常用调节参数：
+- `one_euro_min_cutoff` 越小，静止越稳定，慢速动作延迟越明显。
+- `one_euro_beta` 越大，快速动作跟随越灵敏。
 
-- `one_euro_min_cutoff`：越小越稳定，但慢速动作延迟越明显，默认 `0.8`。
-- `one_euro_beta`：越大越能快速跟随剧烈动作，默认 `0.3`。
-
-对比关闭滤波的效果：
+关闭滤波进行对照：
 
 ```bash
 ros2 launch mediapipe_hand_pose pipeline.launch.py use_one_euro_filter:=false
 ```
+
+完整项目通常通过 `linkerhand_retargeting` 或 `linkerhand_gazebo_control` 的一键入口
+启动本包。
