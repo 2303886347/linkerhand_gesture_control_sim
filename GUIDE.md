@@ -14,8 +14,9 @@
 - [7. 左右手标定](#7-左右手标定)
 - [8. 滤波原理和参数](#8-滤波原理和参数)
 - [9. RViz 与 TF 检查](#9-rviz-与-tf-检查)
-- [10. 常见问题](#10-常见问题)
-- [11. Git 分支](#11-git-分支)
+- [10. Gazebo 手势同步](#10-gazebo-手势同步)
+- [11. 常见问题](#11-常见问题)
+- [12. Git 分支](#12-git-分支)
 
 ## 1. 系统边界
 
@@ -27,8 +28,8 @@ USB 摄像头
   -> 人手关键点与语义关节角
   -> 左/右手独立标定映射
   -> One Euro + EMA + 速度限制
-  -> ROS JointState
   -> RViz 2 左手、右手或双手模型
+  -> Gazebo Sim 单左手或单右手模型
 ```
 
 已完成：
@@ -39,12 +40,15 @@ USB 摄像头
 - 单左手、单右手、双手 RViz 同步。
 - One Euro、EMA、限速、短暂保持和平滑回零。
 - 左右手独立 URDF、mesh、RViz 和 Gazebo Sim 模型启动。
+- MediaPipe 到 Gazebo 单左手、单右手运动学位置反馈同步。
+- Gazebo 实际关节状态以 60 Hz 反馈到 ROS 2。
 
 尚未完成：
 
-- MediaPipe 目标直接驱动 Gazebo 控制器。
+- 双手 Gazebo 同时运行。
+- 用于接触抓取和力矩分析的简化碰撞体与动力学参数标定。
 - 真实 Linker Hand 硬件控制。
-- 碰撞约束、动力学控制和力反馈。
+- 真实电机参数下的 effort 闭环和力反馈。
 
 ## 2. 环境检查
 
@@ -127,15 +131,12 @@ source install/setup.bash
 ### 3.3 测试
 
 ```bash
-colcon test --packages-select mediapipe_hand_pose linkerhand_retargeting
+colcon test
 colcon test-result --verbose
 ```
 
-当前基线为：
-
-```text
-34 tests, 0 errors, 0 failures
-```
+文档中的测试数量只作为发布时的验证记录；以本机 `colcon test-result --verbose`
+输出的 `0 errors, 0 failures` 为通过标准。
 
 ## 4. 三种完整运行模式
 
@@ -214,14 +215,15 @@ ros2 launch linkerhand_l30_left_description display.launch.py
 ros2 launch linkerhand_l30_right_description display.launch.py
 ```
 
-### 5.3 Gazebo Sim 模型生成
+### 5.3 只生成 Gazebo Sim 模型
 
 ```bash
 ros2 launch linkerhand_l30_left_description gazebo.launch.py
 ros2 launch linkerhand_l30_right_description gazebo.launch.py
 ```
 
-这里仅生成模型，不会接收 MediaPipe 目标进行控制。
+这里仅生成描述包中的静态模型，不会接收 MediaPipe 目标。完整手势同步请使用
+[第 10 节](#10-gazebo-手势同步)的 `linkerhand_gazebo_control` 启动入口。
 
 ### 5.4 只测试摄像头
 
@@ -509,7 +511,109 @@ RViz 中 `LeftHand` 或 `RightHand` 出现红色错误图标时，重点检查�
 4. 是否在新终端中加载了最新 `install/setup.bash`。
 5. 修改 launch 或 RViz 配置后是否重新构建。
 
-## 10. 常见问题
+## 10. Gazebo 手势同步
+
+### 10.1 启动左手
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
+```
+
+### 10.2 启动右手
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+```
+
+摄像头不是 `/dev/video0` 时，例如：
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py \
+  device:=/dev/video2
+```
+
+当前先提供单左手、单右手入口，两侧均已完成 GUI 验收。不要同时启动两个单手入口来
+替代双手模式，因为它们会分别启动 Gazebo 世界和摄像头；正式双手 Gazebo 入口将在
+碰撞模型和资源占用策略确定后单独实现。
+
+### 10.3 控制链路
+
+```text
+摄像头
+  -> MediaPipe
+  -> linkerhand_retargeting
+  -> /left|right/linkerhand/target_joint_states
+  -> trajectory_adapter
+  -> JointTrajectory
+  -> ros_gz_bridge（ROS 到 Gazebo，单向）
+  -> OnlineJointController
+  -> Gazebo 关节
+  -> JointStatePublisher
+  -> ros_gz_bridge（Gazebo 到 ROS）
+  -> joint_state_throttle
+  -> /left|right/joint_states（60 Hz）
+```
+
+`trajectory_adapter` 检查关节名称、数组长度和有限值，把四指 DIP 目标复制为对应 PIP，
+并补齐固定为零的 `thumb_cmc_roll`。Gazebo 插件只接受完整的 22 关节目标，残缺帧不会
+部分更新模型。
+
+### 10.4 控制原理与边界
+
+每个仿真步使用：
+
+```text
+velocity = Kp * (target_position - actual_position)
+```
+
+速度被限制在 `3 rad/s`，再根据仿真步长计算下一绝对关节位置。插件持续保持最新目标，
+而目标滤波、死区、迟滞、限速和丢失回零仍由上游 `linkerhand_retargeting` 完成。
+
+这是带实际状态反馈的运动学位置同步，不是 `ros2_control` effort PID，也不代表真实
+机械手的电机力矩闭环。当前用途是验证“视觉角度是否正确映射、动作是否稳定跟随”。
+要进行抓取、接触和力矩分析，需要先完成简化碰撞几何、惯量、摩擦、电机和减速器参数
+标定，再切换到动力学 effort 控制。
+
+运行时生成的 URDF 不会修改原始左右手模型，它会：
+
+- 添加固定的 `world -> base_footprint`。
+- 移除四指 DIP 的 mimic 约束，由适配器显式复制 PIP 目标。
+- 暂时移除会导致相邻指节互锁的高精度 STL collision，但保留 visual。
+- 保留 `damping=0.05`，把当前不适合轻量指节的 `friction=0.05` 设为 `0`。
+- 默认把左手质量与惯量乘以 `1/7.6`，右手保持 `1.0`。
+
+左手惯量缩放可以在纯 Gazebo 控制入口覆盖：
+
+```bash
+ros2 launch linkerhand_gazebo_control gazebo_control_left.launch.py \
+  inertial_scale:=0.1315789474
+```
+
+### 10.5 话题检查
+
+```bash
+ros2 topic hz /left/joint_states
+ros2 topic hz /right/joint_states
+ros2 topic echo /left/joint_states sensor_msgs/msg/JointState --once
+ros2 topic echo /right/joint_states sensor_msgs/msg/JointState --once
+```
+
+只检查当前正在运行的一侧。正式 `/left|right/joint_states` 应接近 `60 Hz`；
+`/left|right/gazebo_joint_states_raw` 是内部高频状态，一般不用于可视化或下游控制。
+
+### 10.6 验收标准与数值记录
+
+- 模型完整显示，手掌底座固定。
+- 张开、半握、握拳连续同步，左右方向正确。
+- 四指 DIP 跟随对应 PIP。
+- 静止无明显抖动，动作无明显跳变。
+- 手移出画面后平滑回零，终端无红色报错。
+
+自动半握测试记录：左手最大误差约 `0.029 rad`（`1.6°`），右手约 `0.013 rad`
+（`0.76°`）。回零最大残差分别约 `0.82°` 和 `0.58°`，主要来自拇指 CMC 轴耦合；
+MCP、PIP、DIP 基本回到零。左右手 GUI 验收均已通过。
+
+## 11. 常见问题
 
 ### 没有 MediaPipe 预览窗口
 
@@ -577,7 +681,39 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 show_previews:=false
 ```
 
-## 11. Git 分支
+### Gazebo 模型不动
+
+先确认目标与桥接话题存在：
+
+```bash
+ros2 topic hz /right/linkerhand/target_joint_states
+ros2 topic hz /right/gazebo_joint_trajectory
+ros2 node list | sort
+```
+
+左手测试时把命令中的 `right` 换成 `left`。同时确认终端加载的是当前工作空间：
+
+```bash
+source /opt/ros/humble/setup.bash
+source /home/ubuntu/linkerhand_ros2_ws/install/setup.bash
+```
+
+### Gazebo 启动后没有摄像头画面
+
+Gazebo 完整入口默认显示 MediaPipe 预览。检查 `DISPLAY` 和摄像头设备，并显式指定：
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py \
+  device:=/dev/video2 mediapipe_show_preview:=true
+```
+
+### Gazebo 抓取时手指穿透
+
+这是当前阶段的已知边界。运行时 URDF 为避免原始高精度 STL 在相邻指节间互锁，暂时
+移除了 collision。不能通过直接恢复原 STL 碰撞网格解决；下一阶段应为掌部和指节添加
+box、capsule 等简化碰撞体后再做接触参数调试。
+
+## 12. Git 分支
 
 推荐使用方式：
 
