@@ -11,7 +11,7 @@ A camera-driven ROS 2 project for experiencing real-time Linker Hand L30 gesture
 [![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
 [![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#project-status)
-[![Experience](https://img.shields.io/badge/experience-simulation_first-00A67E)](#overview)
+[![Experience](https://img.shields.io/badge/experience-try_it_first-00A67E)](#overview)
 [![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
@@ -42,9 +42,11 @@ One Euro filtering, deadband/hysteresis, EMA smoothing, and velocity limits. The
 joint targets drive left, right, or dual-hand models in RViz 2, or a single left or right
 hand in Gazebo Sim with measured simulation joint-state feedback.
 
-The project is designed around a simulation-first experience for dexterous-hand
-interaction, ROS 2 learning, and gesture-algorithm demonstrations. It delivers the
-complete pipeline from camera capture and MediaPipe perception to RViz/Gazebo display.
+The project is centered on letting users experience real-time Linker Hand gesture
+synchronization first. RViz 2 and Gazebo Sim make the complete camera-driven interaction
+immediately visible, while the same pipeline supports ROS 2 learning, angle-mapping
+experiments, and gesture-algorithm validation. It covers everything from camera capture
+and MediaPipe perception to processed joint angles and simulation display.
 
 ## Highlights
 
