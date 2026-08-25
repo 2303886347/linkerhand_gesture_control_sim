@@ -7,7 +7,7 @@ PACKAGE_NAME = 'linkerhand_gazebo_control'
 
 setup(
     name=PACKAGE_NAME,
-    version='0.1.0',
+    version='1.0.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + PACKAGE_NAME]),
@@ -20,7 +20,7 @@ setup(
     zip_safe=True,
     maintainer='2303886347',
     maintainer_email='2303886347@qq.com',
-    description='将 Linker Hand 在线关节目标稳定同步到 Gazebo Sim。',
+    description='将 Linker Hand 手势关节目标同步到 Gazebo Sim 并反馈状态。',
     license='Apache-2.0',
     entry_points={
         'console_scripts': [

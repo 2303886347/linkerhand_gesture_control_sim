@@ -24,7 +24,7 @@ def _remove_gazebo_mimic_constraints(robot):
 
 
 def _remove_collision_meshes(robot):
-    """第一阶段仅验证关节同步，移除会造成指节互锁的高精度碰撞网格。"""
+    """手势显示模式移除会造成相邻指节互锁的高精度碰撞网格。"""
     for link in robot.findall('link'):
         for collision in list(link.findall('collision')):
             link.remove(collision)

@@ -31,7 +31,7 @@
     # ROS JointState、URDF、RViz 和控制器内部仍统一使用弧度。
     mapping_angle_unit: deg
 
-    # 第一阶段只启用四指 MCP/PIP 和拇指 MCP/IP 的屈曲映射。
+    # 项目默认映射四指 MCP/PIP 和拇指 MCP/IP 的屈曲动作。
     # input_* 是人体角度范围，output_* 是机械手目标范围，单位均为度。
     mapping:
       wrist_pitch:

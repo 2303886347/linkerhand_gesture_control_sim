@@ -32,6 +32,10 @@ install(TARGETS linkerhand_online_joint_controller
   RUNTIME DESTINATION bin
 )
 
+install(FILES README.md
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_environment_hooks(
   "${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/linkerhand_gazebo_plugin.dsv"
 )

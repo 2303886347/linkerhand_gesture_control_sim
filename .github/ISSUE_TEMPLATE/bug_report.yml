@@ -1,5 +1,5 @@
 name: Bug report / 问题报告
-description: 报告可复现的摄像头、MediaPipe、映射、TF 或 RViz 问题
+description: 报告可复现的摄像头、MediaPipe、映射、TF、RViz 或 Gazebo 问题
 title: "[Bug]: "
 labels:
   - bug
