@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>linkerhand_gazebo_control</name>
+  <version>0.1.0</version>
+  <description>Linker Hand L30 的 Gazebo Sim 在线关节同步控制适配。</description>
+
+  <maintainer email="2303886347@qq.com">2303886347</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>linkerhand_l30_left_description</exec_depend>
+  <exec_depend>linkerhand_l30_right_description</exec_depend>
+  <exec_depend>linkerhand_gazebo_plugin</exec_depend>
+  <exec_depend>linkerhand_retargeting</exec_depend>
+  <exec_depend>mediapipe_hand_pose</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <exec_depend>usb_camera_demo</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
