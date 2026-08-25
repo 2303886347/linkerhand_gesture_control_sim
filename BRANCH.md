@@ -11,6 +11,7 @@ Linker Hand L30 experience in RViz and Gazebo. The complete stable baseline is `
 ```bash
 cd ~/linkerhand_ros2_ws
 source /opt/ros/humble/setup.bash
+colcon build --symlink-install
 source install/setup.bash
 ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py
 
