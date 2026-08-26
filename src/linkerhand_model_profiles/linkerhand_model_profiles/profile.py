@@ -58,6 +58,7 @@ class ModelProfile:
     full_joints: tuple
     mimic_joints: dict
     locked_joints: dict
+    urdf_joint_limits: dict
     joint_limits: dict
     mapping_defaults: dict
     gazebo_inertial_scale: float
@@ -120,6 +121,40 @@ def _parse_mimic_joints(raw):
             offset=_as_finite_float(
                 settings.get('offset', 0.0),
                 f'mimic_joints.{joint}.offset',
+            ),
+        )
+    return result
+
+
+def _apply_mimic_overrides(mimic_joints, raw):
+    """应用手侧差异，例如同一型号左右手不同的联动倍率。"""
+    if raw is None:
+        return mimic_joints
+    if not isinstance(raw, dict):
+        raise ProfileError('mimic_overrides 必须是映射')
+
+    result = dict(mimic_joints)
+    for joint, settings in raw.items():
+        if joint not in result:
+            raise ProfileError(f'mimic_overrides 包含未知关节：{joint}')
+        if not isinstance(settings, dict):
+            raise ProfileError(f'mimic_overrides.{joint} 必须是映射')
+        unknown_fields = set(settings) - {'source', 'multiplier', 'offset'}
+        if unknown_fields:
+            raise ProfileError(
+                f'mimic_overrides.{joint} 包含未知字段：'
+                f'{sorted(unknown_fields)}'
+            )
+        current = result[joint]
+        result[joint] = MimicJoint(
+            source=str(settings.get('source', current.source)),
+            multiplier=_as_finite_float(
+                settings.get('multiplier', current.multiplier),
+                f'mimic_overrides.{joint}.multiplier',
+            ),
+            offset=_as_finite_float(
+                settings.get('offset', current.offset),
+                f'mimic_overrides.{joint}.offset',
             ),
         )
     return result
@@ -226,14 +261,17 @@ def _validate_profile_against_urdf(
         raise ProfileError(f'URDF 中不存在根 link：{root_link}')
 
     joints = {joint.get('name'): joint for joint in robot.findall('joint')}
-    joint_limits = {}
+    urdf_joint_limits = {}
     for joint_name in full_joints:
         joint = joints.get(joint_name)
         if joint is None:
             raise ProfileError(f'URDF 中不存在关节：{joint_name}')
         if joint.get('type') not in {'revolute', 'continuous'}:
             raise ProfileError(f'关节 {joint_name} 不是可旋转关节')
-        joint_limits[joint_name] = _joint_limits(joint, joint_name)
+        urdf_joint_limits[joint_name] = _joint_limits(joint, joint_name)
+
+    # joint_limits 是控制层可安全使用的有效范围，初始值来自 URDF。
+    joint_limits = dict(urdf_joint_limits)
 
     for joint_name in active_joints:
         if joints[joint_name].find('mimic') is not None:
@@ -259,6 +297,30 @@ def _validate_profile_against_urdf(
         if not math.isclose(offset, expected.offset, abs_tol=1.0e-9):
             raise ProfileError(f'关节 {joint_name} mimic offset 与 URDF 不一致')
 
+        if expected.source not in joint_limits:
+            raise ProfileError(
+                f'关节 {joint_name} 的 mimic 源不存在：{expected.source}'
+            )
+        if math.isclose(expected.multiplier, 0.0, abs_tol=1.0e-12):
+            continue
+
+        child_lower, child_upper = urdf_joint_limits[joint_name]
+        source_bounds = sorted(
+            (
+                (child_lower - expected.offset) / expected.multiplier,
+                (child_upper - expected.offset) / expected.multiplier,
+            )
+        )
+        source_lower, source_upper = joint_limits[expected.source]
+        effective_lower = max(source_lower, source_bounds[0])
+        effective_upper = min(source_upper, source_bounds[1])
+        if effective_lower > effective_upper:
+            raise ProfileError(
+                f'关节 {joint_name} 的 mimic 限位与源关节 '
+                f'{expected.source} 没有可行交集'
+            )
+        joint_limits[expected.source] = (effective_lower, effective_upper)
+
     for joint_name, value in locked_joints.items():
         lower, upper = joint_limits[joint_name]
         if not lower <= value <= upper:
@@ -277,7 +339,7 @@ def _validate_profile_against_urdf(
                     f'mapping_defaults.{joint_name}.{field_name} 超出 URDF 限位'
                 )
 
-    return joint_limits
+    return joint_limits, urdf_joint_limits
 
 
 def load_model_profile_from_files(model_path, side_path, urdf_path):
@@ -310,6 +372,9 @@ def load_model_profile_from_files(model_path, side_path, urdf_path):
     mimic_joints = _parse_mimic_joints(
         _require(model_data, 'mimic_joints', 'model profile')
     )
+    mimic_joints = _apply_mimic_overrides(
+        mimic_joints, side_data.get('mimic_overrides')
+    )
     locked_joints = _parse_locked_joints(
         _require(model_data, 'locked_joints', 'model profile')
     )
@@ -322,7 +387,7 @@ def load_model_profile_from_files(model_path, side_path, urdf_path):
     )
     robot = _parse_urdf(urdf_path)
     root_link = str(_require(side_data, 'root_link', 'side profile'))
-    joint_limits = _validate_profile_against_urdf(
+    joint_limits, urdf_joint_limits = _validate_profile_against_urdf(
         robot,
         root_link,
         active_joints,
@@ -364,6 +429,7 @@ def load_model_profile_from_files(model_path, side_path, urdf_path):
         full_joints=full_joints,
         mimic_joints=mimic_joints,
         locked_joints=locked_joints,
+        urdf_joint_limits=urdf_joint_limits,
         joint_limits=joint_limits,
         mapping_defaults=mapping_defaults,
         gazebo_inertial_scale=inertial_scale,

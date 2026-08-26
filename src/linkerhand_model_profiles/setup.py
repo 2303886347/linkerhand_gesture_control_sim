@@ -16,6 +16,10 @@ setup(
             'share/' + PACKAGE_NAME + '/config/l30',
             glob('config/l30/*.yaml'),
         ),
+        (
+            'share/' + PACKAGE_NAME + '/config/o6',
+            glob('config/o6/*.yaml'),
+        ),
     ],
     install_requires=['setuptools', 'PyYAML'],
     tests_require=['pytest'],

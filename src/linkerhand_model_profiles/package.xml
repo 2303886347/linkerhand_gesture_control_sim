@@ -13,6 +13,8 @@
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>linkerhand_l30_left_description</exec_depend>
   <exec_depend>linkerhand_l30_right_description</exec_depend>
+  <exec_depend>linkerhand_o6_left_description</exec_depend>
+  <exec_depend>linkerhand_o6_right_description</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
 
   <test_depend>python3-pytest</test_depend>

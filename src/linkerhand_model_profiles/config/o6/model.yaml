@@ -1,0 +1,57 @@
+schema_version: 1
+model_id: o6
+
+# O6 有 6 个主动自由度：拇指侧摆、拇指屈曲和四指屈曲。
+active_joints:
+  - thumb_cmc_yaw
+  - thumb_cmc_pitch
+  - index_mcp_pitch
+  - middle_mcp_pitch
+  - ring_mcp_pitch
+  - pinky_mcp_pitch
+
+thumb_joints:
+  - thumb_cmc_yaw
+  - thumb_cmc_pitch
+
+# 顺序与官方 O6 URDF 的运动链一致。
+full_joints:
+  - thumb_cmc_yaw
+  - thumb_cmc_pitch
+  - thumb_ip
+  - index_mcp_pitch
+  - index_dip
+  - middle_mcp_pitch
+  - middle_dip
+  - ring_mcp_pitch
+  - ring_dip
+  - pinky_mcp_pitch
+  - pinky_dip
+
+mimic_joints:
+  # 右手官方 URDF 的倍率作为公共值，左手在 left.yaml 中覆盖为 2.29。
+  thumb_ip: {source: thumb_cmc_pitch, multiplier: 1.86, offset: 0.0}
+  index_dip: {source: index_mcp_pitch, multiplier: 0.89, offset: 0.0}
+  middle_dip: {source: middle_mcp_pitch, multiplier: 0.89, offset: 0.0}
+  ring_dip: {source: ring_mcp_pitch, multiplier: 0.89, offset: 0.0}
+  pinky_dip: {source: pinky_mcp_pitch, multiplier: 0.89, offset: 0.0}
+
+locked_joints: {}
+
+# 第二阶段只接通型号与模型层，尚不启用 MediaPipe 映射。
+# 第三阶段会把四指替换为可配置的 MCP/PIP 融合输入。
+mapping_defaults:
+  thumb_cmc_yaw: &fixed
+    source: ''
+    input_min_rad: 0.0
+    input_max_rad: 1.0
+    output_min_rad: 0.0
+    output_max_rad: 0.0
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  thumb_cmc_pitch: *fixed
+  index_mcp_pitch: *fixed
+  middle_mcp_pitch: *fixed
+  ring_mcp_pitch: *fixed
+  pinky_mcp_pitch: *fixed
