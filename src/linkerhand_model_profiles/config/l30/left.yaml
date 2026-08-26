@@ -1,0 +1,11 @@
+schema_version: 1
+model_id: l30
+side: left
+description_package: linkerhand_l30_left_description
+urdf: urdf/linkerhand_l30_left.urdf
+robot_name: linkerhand_l30_left
+root_link: base_footprint
+world_joint_name: world_to_base_footprint
+gazebo:
+  # 保留当前左手 Gazebo 已验收的 SolidWorks 惯量修正。
+  inertial_scale: 0.13157894736842105

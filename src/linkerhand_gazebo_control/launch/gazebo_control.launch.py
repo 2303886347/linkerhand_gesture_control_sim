@@ -15,6 +15,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 from linkerhand_gazebo_control.urdf_builder import build_controlled_urdf
+from linkerhand_model_profiles import load_model_profile
 
 
 def _as_bool(value):
@@ -25,21 +26,18 @@ def _launch_setup(context):
     side = LaunchConfiguration('side').perform(context).strip().lower()
     if side not in {'left', 'right'}:
         raise ValueError('side 只能是 left 或 right')
+    model_id = LaunchConfiguration('model_id').perform(context).strip().lower()
+    profile = load_model_profile(model_id, side)
 
-    control_share = Path(
-        get_package_share_directory('linkerhand_gazebo_control')
-    )
-    description_package = f'linkerhand_l30_{side}_description'
-    description_share = Path(
-        get_package_share_directory(description_package)
-    )
-    model_name = f'linkerhand_l30_{side}'
+    description_package = profile.description_package
+    get_package_share_directory(description_package)
+    model_name = profile.robot_name
 
     model_value = LaunchConfiguration('model').perform(context).strip()
     model_path = (
         Path(model_value)
         if model_value
-        else description_share / 'urdf' / f'{model_name}.urdf'
+        else profile.urdf_path
     )
     inertial_scale_value = LaunchConfiguration(
         'inertial_scale'
@@ -51,6 +49,7 @@ def _launch_setup(context):
         model_path,
         side,
         inertial_scale=inertial_scale,
+        profile=profile,
     )
 
     world = LaunchConfiguration('world').perform(context)
@@ -126,6 +125,8 @@ def _launch_setup(context):
                     LaunchConfiguration('trajectory_duration'),
                     value_type=float,
                 ),
+                'model_id': model_id,
+                'model_side': side,
             }
         ],
     )
@@ -179,6 +180,9 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'side', default_value='left', description='控制 left 或 right 手。'
+        ),
+        DeclareLaunchArgument(
+            'model_id', default_value='l30', description='机械手型号 profile。'
         ),
         DeclareLaunchArgument(
             'model',

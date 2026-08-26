@@ -67,6 +67,7 @@ def generate_launch_description():
             name='linkerhand_rviz_joint_state_adapter',
             output='screen',
             parameters=[
+                LaunchConfiguration('parameters_file'),
                 {
                     'input_topic': LaunchConfiguration('output_topic'),
                     'output_topic': LaunchConfiguration('joint_states_topic'),

@@ -86,6 +86,7 @@ def _retargeting_nodes(side, parameters_file):
             name='linkerhand_rviz_joint_state_adapter',
             output='screen',
             parameters=[
+                parameters_file,
                 {
                     'input_topic': target_topic,
                     'output_topic': f'/{side}/joint_states',

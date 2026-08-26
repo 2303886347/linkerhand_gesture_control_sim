@@ -4,19 +4,18 @@ from copy import deepcopy
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-from linkerhand_gazebo_control.joints import CONTROLLED_JOINTS
-from linkerhand_retargeting.joints import MIMIC_JOINTS
+from linkerhand_model_profiles import load_model_profile
 
 
 DEFAULT_INERTIAL_SCALE = {
-    'left': 1.0 / 7.6,
-    'right': 1.0,
+    side: load_model_profile('l30', side).gazebo_inertial_scale
+    for side in ('left', 'right')
 }
 
 
-def _remove_gazebo_mimic_constraints(robot):
+def _remove_gazebo_mimic_constraints(robot, profile):
     """Gazebo 中把四指 DIP 改为独立同步关节。"""
-    for joint_name in MIMIC_JOINTS:
+    for joint_name in profile.mimic_joints:
         joint = robot.find(f"joint[@name='{joint_name}']")
         mimic = joint.find('mimic')
         if mimic is not None:
@@ -58,7 +57,7 @@ def _scale_inertial_properties(robot, scale):
                 )
 
 
-def _add_online_joint_controller(robot, side):
+def _add_online_joint_controller(robot, side, profile):
     """添加支持持续在线目标的多关节位置控制插件。"""
     gazebo = ET.SubElement(robot, 'gazebo')
     plugin = ET.SubElement(
@@ -71,7 +70,7 @@ def _add_online_joint_controller(robot, side):
     ET.SubElement(plugin, 'position_gain').text = '8.0'
     ET.SubElement(plugin, 'max_velocity').text = '3.0'
 
-    for joint_name in CONTROLLED_JOINTS:
+    for joint_name in profile.controlled_joints:
         ET.SubElement(plugin, 'joint_name').text = joint_name
 
 
@@ -93,6 +92,8 @@ def build_controlled_urdf(
     source_path,
     side,
     inertial_scale=None,
+    model_id='l30',
+    profile=None,
 ):
     """附加固定世界根、在线控制和只读状态发布插件。"""
     source_path = Path(source_path)
@@ -100,10 +101,13 @@ def build_controlled_urdf(
     side = str(side).strip().lower()
     if side not in {'left', 'right'}:
         raise ValueError(f'不支持的手侧：{side}')
+    profile = profile or load_model_profile(model_id, side)
+    if profile.side != side:
+        raise ValueError(f'profile 手侧 {profile.side} 与请求手侧 {side} 不一致')
     if inertial_scale is None:
-        inertial_scale = DEFAULT_INERTIAL_SCALE[side]
+        inertial_scale = profile.gazebo_inertial_scale
 
-    _remove_gazebo_mimic_constraints(robot)
+    _remove_gazebo_mimic_constraints(robot, profile)
     _remove_collision_meshes(robot)
     _normalize_joint_dynamics(robot)
     _scale_inertial_properties(robot, inertial_scale)
@@ -111,14 +115,14 @@ def build_controlled_urdf(
     if robot.find("link[@name='world']") is None:
         robot.insert(0, ET.Element('link', name='world'))
         world_joint = ET.Element(
-            'joint', name='world_to_base_footprint', type='fixed'
+            'joint', name=profile.world_joint_name, type='fixed'
         )
         ET.SubElement(world_joint, 'parent', link='world')
-        ET.SubElement(world_joint, 'child', link='base_footprint')
+        ET.SubElement(world_joint, 'child', link=profile.root_link)
         ET.SubElement(world_joint, 'origin', xyz='0 0 0', rpy='0 0 0')
         robot.insert(1, world_joint)
 
-    _add_online_joint_controller(robot, side)
+    _add_online_joint_controller(robot, side, profile)
     _add_joint_state_publisher(robot, side)
 
     # deepcopy 可避免调用方后续持有的 Element 被序列化过程修改。
