@@ -158,6 +158,27 @@ class LinkerHandRetargetingNode(Node):
             safe_position = defaults.safe_position
             prefix = f'mapping.{joint}'
             self.declare_parameter(f'{prefix}.source', source)
+            configured_source = str(
+                self.get_parameter(f'{prefix}.source').value
+            ).strip()
+            default_sources = [configured_source] if configured_source else []
+            if default_sources:
+                self.declare_parameter(f'{prefix}.sources', default_sources)
+            else:
+                # ROS 2 Humble 的空数组无法推断参数类型，用空字符串占位后过滤。
+                self.declare_parameter(f'{prefix}.sources', [''])
+            configured_sources = [
+                str(value).strip()
+                for value in self.get_parameter(f'{prefix}.sources').value
+                if str(value).strip()
+            ]
+            if configured_sources:
+                self.declare_parameter(
+                    f'{prefix}.source_weights',
+                    [1.0] * len(configured_sources),
+                )
+            else:
+                self.declare_parameter(f'{prefix}.source_weights', [1.0])
             self.declare_parameter(
                 f'{prefix}.input_min',
                 radians_to_angle(input_min, mapping_angle_unit),
@@ -187,7 +208,7 @@ class LinkerHandRetargetingNode(Node):
             joint_min, joint_max = self.profile.joint_limits[joint]
             mappings[joint] = JointMapping(
                 target_joint=joint,
-                source_angle=str(self.get_parameter(f'{prefix}.source').value),
+                source_angle=configured_source,
                 input_min=angle_to_radians(
                     self.get_parameter(f'{prefix}.input_min').value,
                     mapping_angle_unit,
@@ -210,6 +231,17 @@ class LinkerHandRetargetingNode(Node):
                 fixed_position=angle_to_radians(
                     self.get_parameter(f'{prefix}.fixed_position').value,
                     mapping_angle_unit,
+                ),
+                source_angles=tuple(configured_sources),
+                source_weights=(
+                    tuple(
+                        float(value)
+                        for value in self.get_parameter(
+                            f'{prefix}.source_weights'
+                        ).value
+                    )
+                    if configured_sources
+                    else ()
                 ),
             )
             configured_safe_position = angle_to_radians(
@@ -242,9 +274,10 @@ class LinkerHandRetargetingNode(Node):
         missing = []
         for joint, mapping in self.mappings.items():
             if mapping.driven:
-                source_value = source_angles.get(mapping.source_angle)
-                if source_value is None or not math.isfinite(source_value):
-                    missing.append(mapping.source_angle)
+                try:
+                    source_value = mapping.combine_source_angles(source_angles)
+                except KeyError as error:
+                    missing.extend(error.args[0])
                     continue
                 raw_target[joint] = mapping.map_angle(source_value)
             else:

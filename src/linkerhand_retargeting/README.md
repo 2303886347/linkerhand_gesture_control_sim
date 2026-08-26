@@ -1,13 +1,13 @@
 # Linker Hand 角度重定向
 
 `linkerhand_retargeting` 是项目的核心角度转换与稳定化包。它把 MediaPipe 输出的人手
-语义角度转换为 Linker Hand L30 左手或右手的关节目标，并提供 RViz 左手、右手和
-双手完整启动入口。
+语义角度转换为 Linker Hand L30 或 O6 的关节目标，并提供型号独立的稳定化处理。
 
 ## 数据处理
 
 ```text
 MediaPipe 人手角度
+  -> 单角度或多角度加权融合
   -> 左右手独立输入范围标定
   -> Linker Hand 输出角度映射
   -> 关节死区与迟滞
@@ -17,9 +17,9 @@ MediaPipe 人手角度
   -> Linker Hand 关节目标
 ```
 
-项目默认映射四指 MCP/PIP 和拇指 MCP/IP 屈曲。腕关节、四指侧摆以及当前未由
-MediaPipe 稳定估计的拇指 CMC 轴保持安全零位。四指 DIP 在 RViz/Gazebo 适配层中
-跟随对应 PIP。
+L30 保持原有四指 MCP/PIP 和拇指 MCP/IP 映射。O6 四指的单个主动屈曲轴默认使用
+`35% MCP + 65% PIP` 融合角，O6 拇指包含侧摆和屈曲两个主动轴。mimic 从动关节在
+RViz/Gazebo 适配层按各型号 profile 自动展开。
 
 ## RViz 一键启动
 
@@ -32,6 +32,12 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py
 
 # 双手，共享一个摄像头并在一个 RViz 中显示
 ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
+
+# O6 左手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py
+
+# O6 右手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_right.launch.py
 ```
 
 三个入口会自动启动摄像头、MediaPipe、角度重定向、状态发布和 RViz，不需要提前
@@ -42,6 +48,8 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
 ```text
 config/retargeting_left.yaml
 config/retargeting_right.yaml
+config/retargeting_o6_left.yaml
+config/retargeting_o6_right.yaml
 ```
 
 两个文件完全独立，标定值使用度数，便于和 MediaPipe 调试窗口直接对照：
@@ -51,6 +59,21 @@ mapping_angle_unit: deg
 ```
 
 ROS `JointState`、URDF、RViz 和 Gazebo 内部仍使用标准弧度。
+
+O6 四指融合配置示例：
+
+```yaml
+mapping:
+  index_mcp_pitch:
+    sources: [index_mcp_flexion, index_pip_flexion]
+    source_weights: [0.35, 0.65]
+    input_min: 9.75
+    input_max: 73.25
+    output_min: 0.0
+    output_max: 90.0
+```
+
+旧的单一 `source` 配置继续兼容，L30 无需迁移 YAML。
 
 实测 PIP/拇指 MCP 输入范围：
 

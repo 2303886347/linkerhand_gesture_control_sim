@@ -259,7 +259,9 @@ class MediaPipeHandPoseNode(Node):
     @staticmethod
     def _draw_angle_summary(frame, angles):
         summary = [
-            ('Thumb', angles.get('thumb_mcp_flexion', 0.0)),
+            ('Thumb Abd', angles.get('thumb_cmc_abduction', 0.0)),
+            ('Thumb CMC', angles.get('thumb_cmc_flexion', 0.0)),
+            ('Thumb MCP', angles.get('thumb_mcp_flexion', 0.0)),
             ('Index', angles.get('index_pip_flexion', 0.0)),
             ('Middle', angles.get('middle_pip_flexion', 0.0)),
             ('Ring', angles.get('ring_pip_flexion', 0.0)),
