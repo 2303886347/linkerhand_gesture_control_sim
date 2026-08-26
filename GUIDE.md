@@ -8,7 +8,7 @@
 - [1. 项目范围](#1-项目范围)
 - [2. 环境检查](#2-环境检查)
 - [3. 构建与测试](#3-构建与测试)
-- [4. RViz 三种运行模式](#4-rviz-三种运行模式)
+- [4. RViz 多型号运行模式](#4-rviz-多型号运行模式)
 - [5. 分模块启动](#5-分模块启动)
 - [6. ROS 2 节点与话题](#6-ros-2-节点与话题)
 - [7. 左右手标定](#7-左右手标定)
@@ -28,8 +28,8 @@ USB 摄像头
   -> 人手关键点与语义关节角
   -> 左/右手独立标定映射
   -> One Euro + EMA + 速度限制
-  -> RViz 2 左手、右手或双手模型
-  -> Gazebo Sim 单左手或单右手模型
+  -> RViz 2 L30/O6 单手或任意左右组合
+  -> Gazebo Sim L30 单左手或单右手模型
 ```
 
 项目正式提供：
@@ -37,7 +37,7 @@ USB 摄像头
 - 摄像头图像发布与 OpenCV 预览。
 - 左右手识别和角度输出。
 - 左右手独立实测标定。
-- 单左手、单右手、双手 RViz 同步。
+- L30/O6 单手和任意左右型号组合的 RViz 同步。
 - One Euro、EMA、限速、短暂保持和平滑回零。
 - 左右手独立 URDF、mesh、RViz 和 Gazebo Sim 模型启动。
 - MediaPipe 到 Gazebo 单左手、单右手运动学位置反馈同步。
@@ -107,7 +107,7 @@ echo "$WAYLAND_DISPLAY"
 通过 SSH 或无桌面环境运行时，关闭预览和 RViz：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   show_previews:=false use_rviz:=false
 ```
 
@@ -144,9 +144,10 @@ colcon test-result --verbose
 文档中的测试数量只作为发布时的验证记录；以本机 `colcon test-result --verbose`
 输出的 `0 errors, 0 failures` 为通过标准。
 
-## 4. RViz 三种运行模式
+## 4. RViz 多型号运行模式
 
-三个入口都会启动摄像头、MediaPipe、角度转换、关节适配器和 RViz。
+所有入口都会启动摄像头、MediaPipe、角度转换、关节适配器和 RViz。正式多型号入口
+位于 `linkerhand_bringup`；原 L30 命令继续兼容。
 
 ### 4.1 只运行左手
 
@@ -172,10 +173,24 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py
 - `retargeting_right.yaml`
 - `linkerhand_l30_right_description`
 
-### 4.3 同时运行左右手
+### 4.3 O6 单手
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
+# O6 左手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py
+
+# O6 右手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_right.launch.py
+```
+
+O6 四指使用每指独立的 `35% MCP + 65% PIP` 融合角；拇指屈曲和侧摆分别驱动两个
+主动关节，mimic 关节由型号 profile 自动展开。
+
+### 4.4 参数式双手核心入口
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6
 ```
 
 双手模式特性：
@@ -186,11 +201,45 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
 - TF 使用 `left/...` 和 `right/...` 命名空间。
 - 一个 RViz 同时显示两个 RobotModel。
 - 默认每侧 10 FPS，降低双实例 CPU 压力。
+- `left_model` 和 `right_model` 分别从 `l30`、`o6` 中选择。
+- 型号默认标定缺失时回退到 profile 默认值，并在终端明确警告。
 
-### 4.4 常用启动参数
+四种已支持组合：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=l30
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=o6 right_model:=o6
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=o6 right_model:=l30
+```
+
+对应快捷入口：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz_l30_both.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_o6_both.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_l30_o6.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_o6_l30.launch.py
+```
+
+旧命令仍默认启动 L30 双手：
+
+```bash
+ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
+```
+
+### 4.5 个人标定和常用参数
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 \
+  right_model:=o6 \
+  left_parameters_file:=/path/to/personal_l30_left.yaml \
+  right_parameters_file:=/path/to/personal_o6_right.yaml \
   device:=/dev/video0 \
   width:=640 \
   height:=480 \
@@ -204,7 +253,7 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 查看全部参数：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py --show-args
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py --show-args
 ```
 
 ## 5. 分模块启动
@@ -404,7 +453,7 @@ one_euro_reset_timeout: 0.5
 静止稳定优先的推荐起点：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   one_euro_min_cutoff:=0.5 \
   one_euro_beta:=0.4
 ```
@@ -677,7 +726,7 @@ return_joint_velocity: 0.8
 ### 双手模式 CPU 占用过高
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   processing_fps:=8.0
 ```
 

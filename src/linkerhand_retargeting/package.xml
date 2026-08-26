@@ -17,6 +17,8 @@
   <exec_depend>linkerhand_l30_left_description</exec_depend>
   <exec_depend>linkerhand_l30_right_description</exec_depend>
   <exec_depend>linkerhand_model_profiles</exec_depend>
+  <exec_depend>linkerhand_o6_left_description</exec_depend>
+  <exec_depend>linkerhand_o6_right_description</exec_depend>
   <exec_depend>mediapipe_hand_pose</exec_depend>
   <exec_depend>rclpy</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>

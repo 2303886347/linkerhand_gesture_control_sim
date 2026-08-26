@@ -40,6 +40,19 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py
 ros2 launch linkerhand_retargeting mediapipe_rviz_o6_right.launch.py
 ```
 
+多型号双手使用正式 bringup 入口，支持两个方向的混合组合：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6
+
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=o6 right_model:=l30
+```
+
+`mediapipe_rviz_both.launch.py` 仍作为兼容入口，默认行为保持 L30 左右手不变；它也接受
+`left_model`、`right_model`、`left_parameters_file` 和 `right_parameters_file` 参数。
+
 三个入口会自动启动摄像头、MediaPipe、角度重定向、状态发布和 RViz，不需要提前
 运行其他节点。摄像头不是 `/dev/video0` 时追加 `device:=/dev/video2`。
 

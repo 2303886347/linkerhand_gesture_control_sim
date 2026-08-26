@@ -2,17 +2,17 @@
 
 # LinkerHand Gesture Control Sim
 
-使用普通 USB 摄像头体验 Linker Hand L30 实时手势同步的 ROS 2 仿真项目
+使用普通 USB 摄像头体验 Linker Hand L30/O6 实时手势同步的 ROS 2 仿真项目
 
 [![ROS 2](https://img.shields.io/badge/ROS_2-Humble-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/humble/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-22.04-E95420?logo=ubuntu&logoColor=white)](https://releases.ubuntu.com/22.04/)
 [![Python](https://img.shields.io/badge/Python-3.10-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![MediaPipe](https://img.shields.io/badge/MediaPipe-Hands-00A67E?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
-[![RViz 2](https://img.shields.io/badge/RViz_2-Dual_Hand-5C6BC0)](https://github.com/ros2/rviz)
+[![RViz 2](https://img.shields.io/badge/RViz_2-Multi_Model-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
 [![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#项目完成状态)
 [![Experience](https://img.shields.io/badge/experience-try_it_first-00A67E)](#项目简介)
-[![Tests](https://img.shields.io/badge/tests-40_passing-brightgreen)](#验证与测试)
+[![Tests](https://img.shields.io/badge/tests-93_passing-brightgreen)](#验证与测试)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#许可证)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
@@ -35,12 +35,13 @@
 ## 项目简介
 
 LinkerHand Gesture Control Sim 是一个可直接运行的视觉手势仿真项目。它让用户通过
-普通 USB 摄像头快速体验 Linker Hand L30 的实时手势同步、角度重定向和仿真交互。
+普通 USB 摄像头快速体验 Linker Hand L30 和 O6 的实时手势同步、角度重定向与仿真
+交互。
 
 系统从摄像头获取画面，使用 MediaPipe 检测左右手关键点并计算人体关节角，再经过
 左右手独立标定、角度重定向、One Euro、死区/迟滞、EMA 和速度限制，最终驱动
-RViz 2 或 Gazebo Sim 中的 Linker Hand 模型。RViz 支持左手、右手和双手显示；
-Gazebo 支持单左手和单右手位置同步，并反馈实际仿真关节状态。
+RViz 2 或 Gazebo Sim 中的 Linker Hand 模型。RViz 支持 L30/O6 单手，以及任意左右
+型号组合；Gazebo 当前支持 L30 单左手和单右手位置同步，并反馈实际仿真关节状态。
 
 项目以“优先体验 Linker Hand 实时手势同步”为核心定位。用户可以通过 RViz 2 和
 Gazebo Sim 直观体验摄像头手势驱动灵巧手模型的完整过程，同时用于 ROS 2 学习、
@@ -50,7 +51,8 @@ Gazebo Sim 直观体验摄像头手势驱动灵巧手模型的完整过程，同
 ## 核心能力
 
 - 普通 USB 摄像头驱动的实时灵巧手仿真体验。
-- RViz 左手、右手、双手三套一键启动入口。
+- RViz 支持 L30/O6 单手和四种左右型号组合。
+- 参数式核心入口与常用组合快捷 launch 同时提供。
 - Gazebo 单左手、单右手一键启动入口。
 - 双手模式只打开一次摄像头，左右识别、标定、话题和 TF 完全隔离。
 - 左右手使用独立的实测输入范围与机械手角度映射。
@@ -59,6 +61,7 @@ Gazebo Sim 直观体验摄像头手势驱动灵巧手模型的完整过程，同
 - One Euro、关节死区/迟滞、EMA 和关节速度限制。
 - 目标丢失后短暂保持，并平滑返回安全开掌姿态。
 - L30 左右手 URDF、mesh、RViz 2 和 Gazebo Sim 描述包。
+- O6 左右手官方 URDF、mesh、六主动自由度 profile 和 RViz 2 描述包。
 - Gazebo 视觉同步与 60 Hz 实际关节状态反馈。
 - Gazebo 输入完整性检查、关节限速和左右手独立模型参数校正。
 - 中文源码注释、中文运行日志以及中英双语项目文档。
@@ -121,16 +124,19 @@ source install/setup.bash
 
 | 显示端 | 模式 | 命令 |
 | --- | --- | --- |
-| RViz 2 | 左手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` |
-| RViz 2 | 右手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` |
-| RViz 2 | 双手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py` |
-| Gazebo Sim | 左手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py` |
-| Gazebo Sim | 右手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py` |
+| RViz 2 | 任意双手组合 | `ros2 launch linkerhand_bringup mediapipe_rviz.launch.py left_model:=l30 right_model:=o6` |
+| RViz 2 | L30 左手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` |
+| RViz 2 | L30 右手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` |
+| RViz 2 | O6 左手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py` |
+| RViz 2 | O6 右手 | `ros2 launch linkerhand_retargeting mediapipe_rviz_o6_right.launch.py` |
+| Gazebo Sim | L30 左手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py` |
+| Gazebo Sim | L30 右手 | `ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py` |
 
 双手模式默认每侧以 10 FPS 运行一个 MediaPipe 实例。CPU 余量充足时可以提高：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6 \
   processing_fps:=12.0
 ```
 
@@ -147,9 +153,13 @@ Gazebo 入口会同时打开 MediaPipe 预览和 Gazebo GUI。摄像头不是 `/
 | `usb_camera_demo` | 打开 USB 摄像头并发布 ROS 2 图像 | [README](src/usb_camera_demo/README.md) |
 | `hand_pose_msgs` | 定义手部关键点和语义关节角消息 | [README](src/hand_pose_msgs/README.md) |
 | `mediapipe_hand_pose` | MediaPipe 检测、骨架显示和 One Euro 滤波 | [README](src/mediapipe_hand_pose/README.md) |
+| `linkerhand_bringup` | L30/O6 参数式和快捷多型号启动入口 | [README](src/linkerhand_bringup/README.md) |
+| `linkerhand_model_profiles` | 统一校验型号、手侧、关节、限位和描述包 | [README](src/linkerhand_model_profiles/README.md) |
 | `linkerhand_retargeting` | 标定映射、EMA、限速、回零和双手 RViz | [README](src/linkerhand_retargeting/README.md) |
 | `linkerhand_l30_left_description` | L30 左手 URDF、mesh、RViz/Gazebo 启动 | [README](src/linkerhand_l30_left_description/README.md) |
 | `linkerhand_l30_right_description` | L30 v6 右手 URDF、mesh、RViz/Gazebo 启动 | [README](src/linkerhand_l30_right_description/README.md) |
+| `linkerhand_o6_left_description` | O6 左手官方 URDF、mesh 和 RViz 启动 | [README](src/linkerhand_o6_left_description/README.md) |
+| `linkerhand_o6_right_description` | O6 右手官方 URDF、mesh 和 RViz 启动 | [README](src/linkerhand_o6_right_description/README.md) |
 | `linkerhand_gazebo_control` | 轨迹适配、动态 URDF、状态节流和 Gazebo 启动 | [README](src/linkerhand_gazebo_control/README.md) |
 | `linkerhand_gazebo_plugin` | Gazebo 在线多关节运动学位置同步插件 | [README](src/linkerhand_gazebo_plugin/README.md) |
 
@@ -179,7 +189,8 @@ Gazebo 入口会同时打开 MediaPipe 预览和 Gazebo GUI。摄像头不是 `/
 推荐从以下参数开始调整静止抖动：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6 \
   one_euro_min_cutoff:=0.5 \
   one_euro_beta:=0.4
 ```
@@ -194,13 +205,15 @@ colcon test
 colcon test-result --verbose
 ```
 
-当前验证基线：`40 tests, 0 errors, 0 failures, 0 skipped`。
+当前验证基线：`93 tests, 0 errors, 0 failures, 0 skipped`。
 
 ## 项目完成状态
 
 - [x] USB 摄像头 ROS 2 图像发布
 - [x] MediaPipe 左右手关键点与关节角
 - [x] 左手、右手、双手 RViz 同步
+- [x] L30/O6 型号 profile 与 O6 六主动自由度重定向
+- [x] L30/O6 任意左右组合和统一 bringup 入口
 - [x] 独立标定、One Euro、EMA 和回零限速
 - [x] 可配置的左右手独立关节死区与迟滞消抖
 - [x] Gazebo 单左手、单右手运动学位置反馈同步
