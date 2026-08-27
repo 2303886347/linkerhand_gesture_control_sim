@@ -38,8 +38,7 @@ mimic_joints:
 
 locked_joints: {}
 
-# 第二阶段只接通型号与模型层，尚不启用 MediaPipe 映射。
-# 第三阶段会把四指替换为可配置的 MCP/PIP 融合输入。
+# 公共层保持安全零位；正常运行由 left.yaml/right.yaml 的实测标定覆盖。
 mapping_defaults:
   thumb_cmc_yaw: &fixed
     source: ''

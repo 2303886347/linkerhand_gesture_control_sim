@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ET
 
 import pytest
 
-from linkerhand_retargeting.rviz_bringup import resolve_rviz_hand_spec
+from linkerhand_retargeting.bringup import resolve_rviz_hand_spec
 
 
 PACKAGE_SHARE = Path(__file__).parents[1]

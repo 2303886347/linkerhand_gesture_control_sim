@@ -212,7 +212,7 @@ def generate_launch_description():
             'inertial_scale',
             default_value='',
             description=(
-                '质量和惯量缩放；留空时左手为 1/7.6，右手为 1.0。'
+                '质量和惯量缩放；留空时使用所选型号/手侧 profile。'
             ),
         ),
         OpaqueFunction(function=_launch_setup),

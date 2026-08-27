@@ -4,6 +4,10 @@ from copy import deepcopy
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+from ament_index_python.packages import (
+    PackageNotFoundError,
+    get_package_share_directory,
+)
 from linkerhand_model_profiles import load_model_profile
 
 
@@ -27,6 +31,32 @@ def _remove_collision_meshes(robot):
     for link in robot.findall('link'):
         for collision in list(link.findall('collision')):
             link.remove(collision)
+
+
+def _resolve_package_mesh_uris(robot):
+    """把 Gazebo GUI 无法解析的 ROS 包网格 URI 转为绝对文件 URI。"""
+    for mesh in robot.findall('.//mesh'):
+        filename = mesh.get('filename')
+        if not filename or not filename.startswith('package://'):
+            continue
+
+        package_path = filename.removeprefix('package://')
+        package_name, separator, relative_path = package_path.partition('/')
+        if not separator or not package_name or not relative_path:
+            raise ValueError(f'无效的 ROS 包资源 URI：{filename}')
+
+        try:
+            package_share = Path(get_package_share_directory(package_name))
+        except PackageNotFoundError as error:
+            raise ValueError(
+                f'网格资源所属 ROS 包不存在：{package_name}（URI：{filename}）'
+            ) from error
+
+        mesh_path = package_share / relative_path
+        if not mesh_path.is_file():
+            raise ValueError(f'网格资源文件不存在：{mesh_path}（URI：{filename}）')
+
+        mesh.set('filename', mesh_path.resolve().as_uri())
 
 
 def _normalize_joint_dynamics(robot):
@@ -107,6 +137,7 @@ def build_controlled_urdf(
     if inertial_scale is None:
         inertial_scale = profile.gazebo_inertial_scale
 
+    _resolve_package_mesh_uris(robot)
     _remove_gazebo_mimic_constraints(robot, profile)
     _remove_collision_meshes(robot)
     _normalize_joint_dynamics(robot)

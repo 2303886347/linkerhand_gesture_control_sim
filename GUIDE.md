@@ -29,7 +29,7 @@ USB 摄像头
   -> 左/右手独立标定映射
   -> One Euro + EMA + 速度限制
   -> RViz 2 L30/O6 单手或任意左右组合
-  -> Gazebo Sim L30 单左手或单右手模型
+  -> Gazebo Sim L30/O6 单左手或单右手模型
 ```
 
 项目正式提供：
@@ -568,16 +568,25 @@ RViz 中 `LeftHand` 或 `RightHand` 出现红色错误图标时，重点检查�
 
 ## 10. Gazebo 手势同步
 
-### 10.1 启动左手
+### 10.1 启动 L30
 
 ```bash
 ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
 ```
 
-### 10.2 启动右手
+### 10.2 启动 O6
 
 ```bash
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_left.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_right.launch.py
+```
+
+参数式核心入口：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=left
 ```
 
 摄像头不是 `/dev/video0` 时，例如：
@@ -587,9 +596,9 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py \
   device:=/dev/video2
 ```
 
-Gazebo 正式支持单左手和单右手，两侧均已完成 GUI 验收。不要同时启动两个单手入口来
-替代双手模式，因为它们会分别启动 Gazebo 世界和摄像头。需要同时观察左右手时，使用
-项目已经提供的双手 RViz 入口。
+Gazebo 只支持单手运行，不要同时启动两个入口来替代双手模式，因为它们会分别启动
+Gazebo 世界和摄像头。L30 两侧已完成 GUI 验收；O6 两侧完成了模型生成、目标注入和
+约 60 Hz 状态反馈自动验证，并已完成左右手 GUI 显示与动作验收。
 
 ### 10.3 控制链路
 
@@ -609,9 +618,10 @@ Gazebo 正式支持单左手和单右手，两侧均已完成 GUI 验收。不�
   -> /left|right/joint_states（60 Hz）
 ```
 
-`trajectory_adapter` 检查关节名称、数组长度和有限值，把四指 DIP 目标复制为对应 PIP，
-并补齐固定为零的 `thumb_cmc_roll`。Gazebo 插件只接受完整的 22 关节目标，残缺帧不会
-部分更新模型。
+`trajectory_adapter` 检查关节名称、数组长度和有限值，并按型号 profile 展开完整关节。
+L30 从 10 个主动映射展开为 22 个完整关节；O6 从 6 个主动自由度展开为 11 个完整
+关节。O6 四指 DIP 是 MCP 的 `0.89` 倍，拇指 IP 左手为 CMC pitch 的 `2.29` 倍、
+右手为 `1.86` 倍。Gazebo 插件只接受完整目标，残缺帧不会部分更新模型。
 
 ### 10.4 控制原理与边界
 
@@ -632,10 +642,10 @@ velocity = Kp * (target_position - actual_position)
 运行时生成的 URDF 不会修改原始左右手模型，它会：
 
 - 添加固定的 `world -> base_footprint`。
-- 移除四指 DIP 的 mimic 约束，由适配器显式复制 PIP 目标。
+- 移除 mimic 约束，由适配器按型号 profile 显式展开从动关节目标。
 - 暂时移除会导致相邻指节互锁的高精度 STL collision，但保留 visual。
 - 保留 `damping=0.05`，把当前不适合轻量指节的 `friction=0.05` 设为 `0`。
-- 默认把左手质量与惯量乘以 `1/7.6`，右手保持 `1.0`。
+- 质量与惯量使用型号/手侧 profile；L30 左手乘以 `1/7.6`，O6 保持官方比例。
 
 左手惯量缩放可以在纯 Gazebo 控制入口覆盖：
 
@@ -660,13 +670,18 @@ ros2 topic echo /right/joint_states sensor_msgs/msg/JointState --once
 
 - 模型完整显示，手掌底座固定。
 - 张开、半握、握拳连续同步，左右方向正确。
-- 四指 DIP 跟随对应 PIP。
+- L30 四指 DIP 跟随对应 PIP；O6 DIP 按 `0.89` 倍跟随 MCP。
+- O6 拇指侧摆、屈曲和左右不同的 IP 联动方向正确。
 - 静止无明显抖动，动作无明显跳变。
 - 手移出画面后平滑回零，终端无红色报错。
 
 自动半握测试记录：左手最大误差约 `0.029 rad`（`1.6°`），右手约 `0.013 rad`
 （`0.76°`）。回零最大残差分别约 `0.82°` 和 `0.58°`，主要来自拇指 CMC 轴耦合；
-MCP、PIP、DIP 基本回到零。左右手 GUI 验收均已通过。
+MCP、PIP、DIP 基本回到零。该记录对应 L30，左右手 GUI 验收均已通过。
+
+O6 自动目标注入已经确认 6 个主动目标可以驱动 11 个完整关节。由于 O6 从动指节在
+Gazebo 中存在一定模型耦合和稳态偏差，GUI 验收时需重点观察动作幅度、静止稳定性和
+拇指联动；确认视觉效果后再决定是否单独调整 O6 的 Gazebo 增益。
 
 ## 11. 常见问题
 

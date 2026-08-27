@@ -16,3 +16,15 @@ ros2 launch linkerhand_bringup mediapipe_rviz_o6_l30.launch.py
 ```
 
 个人标定文件可通过 `left_parameters_file` 和 `right_parameters_file` 显式覆盖。
+
+Gazebo 使用单手参数式入口或四个快捷入口：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=left
+
+ros2 launch linkerhand_bringup mediapipe_gazebo_l30_left.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_l30_right.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_left.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_right.launch.py
+```

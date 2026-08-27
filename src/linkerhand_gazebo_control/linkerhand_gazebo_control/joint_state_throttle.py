@@ -44,6 +44,12 @@ def main(args=None):
     node = JointStateThrottle()
     try:
         rclpy.spin(node)
+    except RuntimeError as error:
+        known_shutdown_race = (
+            'Unable to convert call argument to Python object' in str(error)
+        )
+        if rclpy.ok() or not known_shutdown_race:
+            raise
     except KeyboardInterrupt:
         pass
     finally:

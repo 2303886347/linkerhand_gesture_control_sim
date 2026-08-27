@@ -18,7 +18,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
-from linkerhand_retargeting.rviz_bringup import resolve_rviz_hand_spec
+from linkerhand_retargeting.bringup import resolve_rviz_hand_spec
 
 
 def _mediapipe_node(
