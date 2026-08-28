@@ -1,12 +1,10 @@
-"""Gazebo 在线同步插件直接控制的 Linker Hand 关节集合。"""
+"""L30 Gazebo 旧版关节常量的兼容导出。"""
 
-from linkerhand_retargeting.joints import RVIZ_JOINTS
+from linkerhand_model_profiles import load_model_profile
 
 
-# Gazebo 中四指 DIP 也单独同步，目标值由适配器复制对应 PIP。
-# 这样可避免模拟器的理想 mimic 约束在串联指节上产生反作用锁死。
-CONTROLLED_JOINTS = RVIZ_JOINTS
+_L30_PROFILE = load_model_profile('l30', 'left')
 
-FIXED_TARGETS = {
-    'thumb_cmc_roll': 0.0,
-}
+# Gazebo 中从动关节也单独同步，避免理想 mimic 约束产生反作用锁死。
+CONTROLLED_JOINTS = _L30_PROFILE.controlled_joints
+FIXED_TARGETS = dict(_L30_PROFILE.locked_joints)

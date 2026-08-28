@@ -38,10 +38,57 @@ class JointMapping:
     joint_max: float
     invert: bool = False
     fixed_position: float = 0.0
+    source_angles: tuple = ()
+    source_weights: tuple = ()
+
+    def __post_init__(self):
+        sources = tuple(
+            str(source).strip() for source in self.source_angles if str(source).strip()
+        )
+        if not sources and self.source_angle:
+            sources = (str(self.source_angle).strip(),)
+        if len(sources) != len(set(sources)):
+            raise ValueError(f'{self.target_joint} 的输入角度包含重复名称')
+
+        weights = tuple(float(weight) for weight in self.source_weights)
+        if not weights and sources:
+            weights = (1.0,) * len(sources)
+        if len(weights) != len(sources):
+            raise ValueError(f'{self.target_joint} 的输入角度与权重数量不一致')
+        if any(not math.isfinite(weight) or weight < 0.0 for weight in weights):
+            raise ValueError(f'{self.target_joint} 的输入权重必须是非负有限数')
+        if sources and sum(weights) <= 0.0:
+            raise ValueError(f'{self.target_joint} 的输入权重总和必须大于 0')
+
+        object.__setattr__(self, 'source_angles', sources)
+        object.__setattr__(self, 'source_weights', weights)
+        object.__setattr__(self, 'source_angle', sources[0] if sources else '')
 
     @property
     def driven(self):
-        return bool(self.source_angle)
+        return bool(self.source_angles)
+
+    def combine_source_angles(self, available_angles):
+        """按配置权重融合一个或多个 MediaPipe 人体角度。"""
+        if not self.driven:
+            return self.input_min
+
+        missing = []
+        values = []
+        for source in self.source_angles:
+            value = available_angles.get(source)
+            if value is None or not math.isfinite(value):
+                missing.append(source)
+            else:
+                values.append(float(value))
+        if missing:
+            raise KeyError(tuple(missing))
+
+        weight_sum = sum(self.source_weights)
+        return sum(
+            value * weight
+            for value, weight in zip(values, self.source_weights)
+        ) / weight_sum
 
     def map_angle(self, source_value):
         if not self.driven:

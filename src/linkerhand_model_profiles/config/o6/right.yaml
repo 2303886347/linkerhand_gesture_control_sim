@@ -1,0 +1,11 @@
+schema_version: 1
+model_id: o6
+side: right
+description_package: linkerhand_o6_right_description
+urdf: urdf/linkerhand_o6_right.urdf
+robot_name: linkerhand_o6_right
+root_link: base_footprint
+world_joint_name: world_to_base_footprint
+
+gazebo:
+  inertial_scale: 1.0

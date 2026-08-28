@@ -7,36 +7,29 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
-from linkerhand_gazebo_control.joints import CONTROLLED_JOINTS, FIXED_TARGETS
-from linkerhand_retargeting.joints import MIMIC_JOINTS
+from linkerhand_model_profiles import expand_joint_positions, load_model_profile
 
 
-def build_trajectory(message, duration_seconds):
+def build_trajectory(message, duration_seconds, profile=None):
     """从 JointState 构造单点轨迹；缺少非固定关节时拒绝该帧。"""
+    profile = profile or load_model_profile('l30', 'left')
     if len(message.name) != len(message.position):
         raise ValueError('关节名称与位置数组长度不一致')
 
     positions = dict(zip(message.name, message.position))
     missing = [
         joint
-        for joint in CONTROLLED_JOINTS
+        for joint in profile.active_joints
         if joint not in positions
-        and joint not in FIXED_TARGETS
-        and joint not in MIMIC_JOINTS
     ]
     if missing:
         raise ValueError(f'缺少控制关节：{missing}')
 
+    expanded = expand_joint_positions(profile, positions)
     point = JointTrajectoryPoint()
-    point.positions = []
-    for joint in CONTROLLED_JOINTS:
-        if joint in positions:
-            value = positions[joint]
-        elif joint in MIMIC_JOINTS:
-            value = positions[MIMIC_JOINTS[joint]]
-        else:
-            value = FIXED_TARGETS[joint]
-        point.positions.append(float(value))
+    point.positions = [
+        float(expanded[joint]) for joint in profile.controlled_joints
+    ]
     if not all(math.isfinite(value) for value in point.positions):
         raise ValueError('轨迹中包含非有限关节角')
 
@@ -52,7 +45,7 @@ def build_trajectory(message, duration_seconds):
 
     trajectory = JointTrajectory()
     trajectory.header = message.header
-    trajectory.joint_names = list(CONTROLLED_JOINTS)
+    trajectory.joint_names = list(profile.controlled_joints)
     trajectory.points = [point]
     return trajectory
 
@@ -68,6 +61,12 @@ class GazeboTrajectoryAdapter(Node):
             '/gazebo_joint_trajectory',
         )
         self.declare_parameter('trajectory_duration', 0.15)
+        self.declare_parameter('model_id', 'l30')
+        self.declare_parameter('model_side', 'left')
+        self.profile = load_model_profile(
+            self.get_parameter('model_id').value,
+            self.get_parameter('model_side').value,
+        )
 
         input_topic = str(self.get_parameter('input_topic').value)
         command_topic = str(self.get_parameter('command_topic').value)
@@ -82,13 +81,15 @@ class GazeboTrajectoryAdapter(Node):
         )
         self.invalid_messages = 0
         self.get_logger().info(
-            f'正在将 {input_topic} 转换为 Gazebo 轨迹 {command_topic}'
+            f'已加载型号 {self.profile.model_id}/{self.profile.side}；'
+            f'正在将 {input_topic} 转换为 '
+            f'{len(self.profile.controlled_joints)} 关节 Gazebo 轨迹 {command_topic}'
         )
 
     def target_callback(self, message):
         try:
             trajectory = build_trajectory(
-                message, self.trajectory_duration
+                message, self.trajectory_duration, self.profile
             )
         except ValueError as error:
             self.invalid_messages += 1

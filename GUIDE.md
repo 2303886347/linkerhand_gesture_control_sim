@@ -8,7 +8,7 @@
 - [1. 项目范围](#1-项目范围)
 - [2. 环境检查](#2-环境检查)
 - [3. 构建与测试](#3-构建与测试)
-- [4. RViz 三种运行模式](#4-rviz-三种运行模式)
+- [4. RViz 多型号运行模式](#4-rviz-多型号运行模式)
 - [5. 分模块启动](#5-分模块启动)
 - [6. ROS 2 节点与话题](#6-ros-2-节点与话题)
 - [7. 左右手标定](#7-左右手标定)
@@ -28,8 +28,8 @@ USB 摄像头
   -> 人手关键点与语义关节角
   -> 左/右手独立标定映射
   -> One Euro + EMA + 速度限制
-  -> RViz 2 左手、右手或双手模型
-  -> Gazebo Sim 单左手或单右手模型
+  -> RViz 2 L30/O6 单手或任意左右组合
+  -> Gazebo Sim L30/O6 单左手或单右手模型
 ```
 
 项目正式提供：
@@ -37,7 +37,7 @@ USB 摄像头
 - 摄像头图像发布与 OpenCV 预览。
 - 左右手识别和角度输出。
 - 左右手独立实测标定。
-- 单左手、单右手、双手 RViz 同步。
+- L30/O6 单手和任意左右型号组合的 RViz 同步。
 - One Euro、EMA、限速、短暂保持和平滑回零。
 - 左右手独立 URDF、mesh、RViz 和 Gazebo Sim 模型启动。
 - MediaPipe 到 Gazebo 单左手、单右手运动学位置反馈同步。
@@ -107,7 +107,7 @@ echo "$WAYLAND_DISPLAY"
 通过 SSH 或无桌面环境运行时，关闭预览和 RViz：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   show_previews:=false use_rviz:=false
 ```
 
@@ -144,9 +144,10 @@ colcon test-result --verbose
 文档中的测试数量只作为发布时的验证记录；以本机 `colcon test-result --verbose`
 输出的 `0 errors, 0 failures` 为通过标准。
 
-## 4. RViz 三种运行模式
+## 4. RViz 多型号运行模式
 
-三个入口都会启动摄像头、MediaPipe、角度转换、关节适配器和 RViz。
+所有入口都会启动摄像头、MediaPipe、角度转换、关节适配器和 RViz。正式多型号入口
+位于 `linkerhand_bringup`；原 L30 命令继续兼容。
 
 ### 4.1 只运行左手
 
@@ -172,10 +173,24 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py
 - `retargeting_right.yaml`
 - `linkerhand_l30_right_description`
 
-### 4.3 同时运行左右手
+### 4.3 O6 单手
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
+# O6 左手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py
+
+# O6 右手
+ros2 launch linkerhand_retargeting mediapipe_rviz_o6_right.launch.py
+```
+
+O6 四指使用每指独立的 `35% MCP + 65% PIP` 融合角；拇指屈曲和侧摆分别驱动两个
+主动关节，mimic 关节由型号 profile 自动展开。
+
+### 4.4 参数式双手核心入口
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6
 ```
 
 双手模式特性：
@@ -186,11 +201,45 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
 - TF 使用 `left/...` 和 `right/...` 命名空间。
 - 一个 RViz 同时显示两个 RobotModel。
 - 默认每侧 10 FPS，降低双实例 CPU 压力。
+- `left_model` 和 `right_model` 分别从 `l30`、`o6` 中选择。
+- 型号默认标定缺失时回退到 profile 默认值，并在终端明确警告。
 
-### 4.4 常用启动参数
+四种已支持组合：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=l30
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=o6 right_model:=o6
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 right_model:=o6
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=o6 right_model:=l30
+```
+
+对应快捷入口：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz_l30_both.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_o6_both.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_l30_o6.launch.py
+ros2 launch linkerhand_bringup mediapipe_rviz_o6_l30.launch.py
+```
+
+旧命令仍默认启动 L30 双手：
+
+```bash
+ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py
+```
+
+### 4.5 个人标定和常用参数
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
+  left_model:=l30 \
+  right_model:=o6 \
+  left_parameters_file:=/path/to/personal_l30_left.yaml \
+  right_parameters_file:=/path/to/personal_o6_right.yaml \
   device:=/dev/video0 \
   width:=640 \
   height:=480 \
@@ -204,7 +253,7 @@ ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
 查看全部参数：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py --show-args
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py --show-args
 ```
 
 ## 5. 分模块启动
@@ -328,7 +377,69 @@ mapping_angle_unit: deg
 
 ROS `JointState`、URDF、RViz 和后续控制器内部仍使用弧度。
 
-### 7.1 左手实测范围
+### 7.1 Qt 个人标定上位机
+
+```bash
+ros2 launch linkerhand_bringup calibration_gui.launch.py
+```
+
+在上位机顶部选择 L30/O6、左手/右手和摄像头，再点击“连接”。标注画面、骨架、
+左右手结果、置信度和画面帧率都显示在同一窗口内。
+
+当前可以分别选择“张开手掌、自然握拳、拇指收拢、拇指展开”，由用户点击按钮后
+立即采样。每个姿态默认采样 2 秒，支持取消和重新采样；成功后只切换到下一姿态，
+不会自动开始。界面会检查目标手、手侧、置信度、整手可见性、有效帧率以及角度
+稳定度，并显示具体失败原因。
+
+四个姿态完成后切换到“个人配置”页。只读结果表会按运行时相同的规则计算各驱动关节
+的输入最小角、最大角和活动范围；O6 四指仍采用 `35% MCP + 65% PIP`，拇指侧摆
+采用“展开为最小、收拢为最大”。默认最小活动范围为 5 度，范围过小或方向反向时会
+明确标出关节并阻止生成。
+
+个人配置默认保存在：
+
+```text
+~/.config/linkerhand_gesture_control/calibration
+```
+
+“生成配置”会新建档案，不覆盖仓库默认 YAML；选择已有配置后可用本次采样更新它，
+也可以“另存为新配置”到任意路径。通过“导入 YAML”可以登记默认目录之外的已有个人
+配置；列表只显示当前型号和手侧匹配的档案。生成的文件仍是可直接传给 ROS 2
+`parameters_file` 的标准参数 YAML，同时保存配置名称、摄像头、质量阈值和四姿态
+采样统计。
+
+### 7.2 Qt 一键仿真验证
+
+在“配置档案”中选择一份已经保存、且与当前型号和手侧匹配的个人配置后，底部的
+“RViz 验证”和“Gazebo 验证”按钮会启用。存在尚未保存的重新采样结果时，按钮会
+禁用，避免验证到旧文件。
+
+点击验证后，上位机会执行以下交接：
+
+1. 如果标定摄像头处于连接状态，先停止 GUI 自己的 MediaPipe 和摄像头进程。
+2. 等设备完全释放后，使用当前型号、手侧、摄像头参数和个人 YAML 启动单手验证。
+3. 验证 launch 打开 MediaPipe 调试预览，并启动对应的 RViz 或 Gazebo 仿真。
+4. 点击 GUI 中的“停止 RViz 验证”或“停止 Gazebo 验证”，清理整个 launch 进程组。
+5. 如果验证前 GUI 摄像头已连接，停止后会自动恢复原来的标定连接；验证前未连接则
+   保持未连接。
+
+验证运行期间不能切换型号、手侧、配置或摄像头，防止配置和实际进程不一致。不要只
+依赖关闭 RViz/Gazebo 图形窗口来结束验证，因为摄像头和 ROS 节点仍可能继续运行；
+应使用 GUI 的停止按钮完成统一清理。launch 的完整日志继续输出在启动 GUI 的终端中。
+
+个人配置也可以通过命令行直接验证：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz_single.launch.py \
+  model_id:=o6 side:=left \
+  parameters_file:=/完整路径/个人配置.yaml
+
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=left \
+  parameters_file:=/完整路径/个人配置.yaml
+```
+
+### 7.3 项目默认左手实测范围
 
 | 关节 | MediaPipe 输入 | RViz 输出 |
 | --- | --- | --- |
@@ -344,7 +455,7 @@ ROS `JointState`、URDF、RViz 和后续控制器内部仍使用弧度。
 src/linkerhand_retargeting/config/retargeting_left.yaml
 ```
 
-### 7.2 右手实测范围
+### 7.4 项目默认右手实测范围
 
 | 关节 | MediaPipe 输入 | RViz 输出 |
 | --- | --- | --- |
@@ -404,7 +515,7 @@ one_euro_reset_timeout: 0.5
 静止稳定优先的推荐起点：
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   one_euro_min_cutoff:=0.5 \
   one_euro_beta:=0.4
 ```
@@ -519,16 +630,25 @@ RViz 中 `LeftHand` 或 `RightHand` 出现红色错误图标时，重点检查�
 
 ## 10. Gazebo 手势同步
 
-### 10.1 启动左手
+### 10.1 启动 L30
 
 ```bash
 ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
 ```
 
-### 10.2 启动右手
+### 10.2 启动 O6
 
 ```bash
-ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_left.launch.py
+ros2 launch linkerhand_bringup mediapipe_gazebo_o6_right.launch.py
+```
+
+参数式核心入口：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=left
 ```
 
 摄像头不是 `/dev/video0` 时，例如：
@@ -538,9 +658,19 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py \
   device:=/dev/video2
 ```
 
-Gazebo 正式支持单左手和单右手，两侧均已完成 GUI 验收。不要同时启动两个单手入口来
-替代双手模式，因为它们会分别启动 Gazebo 世界和摄像头。需要同时观察左右手时，使用
-项目已经提供的双手 RViz 入口。
+Gazebo 只支持单手运行，不要同时启动两个入口来替代双手模式，因为它们会分别启动
+Gazebo 世界和摄像头。L30 两侧已完成 GUI 验收；O6 两侧完成了模型生成、目标注入和
+约 60 Hz 状态反馈自动验证，并已完成左右手 GUI 显示与动作验收。
+
+默认加载项目自带的 `linkerhand_demo.sdf`，相机从掌心方向聚焦手掌和五指，并使用
+降低高光后的中性光照。Qt 上位机的“Gazebo 验证”和命令行入口使用同一套视角。
+需要其他 world 时可以显式覆盖：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=l30 side:=left \
+  world:=/完整路径/custom.sdf
+```
 
 ### 10.3 控制链路
 
@@ -560,9 +690,10 @@ Gazebo 正式支持单左手和单右手，两侧均已完成 GUI 验收。不�
   -> /left|right/joint_states（60 Hz）
 ```
 
-`trajectory_adapter` 检查关节名称、数组长度和有限值，把四指 DIP 目标复制为对应 PIP，
-并补齐固定为零的 `thumb_cmc_roll`。Gazebo 插件只接受完整的 22 关节目标，残缺帧不会
-部分更新模型。
+`trajectory_adapter` 检查关节名称、数组长度和有限值，并按型号 profile 展开完整关节。
+L30 从 10 个主动映射展开为 22 个完整关节；O6 从 6 个主动自由度展开为 11 个完整
+关节。O6 四指 DIP 是 MCP 的 `0.89` 倍，拇指 IP 左手为 CMC pitch 的 `2.29` 倍、
+右手为 `1.86` 倍。Gazebo 插件只接受完整目标，残缺帧不会部分更新模型。
 
 ### 10.4 控制原理与边界
 
@@ -583,10 +714,10 @@ velocity = Kp * (target_position - actual_position)
 运行时生成的 URDF 不会修改原始左右手模型，它会：
 
 - 添加固定的 `world -> base_footprint`。
-- 移除四指 DIP 的 mimic 约束，由适配器显式复制 PIP 目标。
+- 移除 mimic 约束，由适配器按型号 profile 显式展开从动关节目标。
 - 暂时移除会导致相邻指节互锁的高精度 STL collision，但保留 visual。
 - 保留 `damping=0.05`，把当前不适合轻量指节的 `friction=0.05` 设为 `0`。
-- 默认把左手质量与惯量乘以 `1/7.6`，右手保持 `1.0`。
+- 质量与惯量使用型号/手侧 profile；L30 左手乘以 `1/7.6`，O6 保持官方比例。
 
 左手惯量缩放可以在纯 Gazebo 控制入口覆盖：
 
@@ -611,13 +742,18 @@ ros2 topic echo /right/joint_states sensor_msgs/msg/JointState --once
 
 - 模型完整显示，手掌底座固定。
 - 张开、半握、握拳连续同步，左右方向正确。
-- 四指 DIP 跟随对应 PIP。
+- L30 四指 DIP 跟随对应 PIP；O6 DIP 按 `0.89` 倍跟随 MCP。
+- O6 拇指侧摆、屈曲和左右不同的 IP 联动方向正确。
 - 静止无明显抖动，动作无明显跳变。
 - 手移出画面后平滑回零，终端无红色报错。
 
 自动半握测试记录：左手最大误差约 `0.029 rad`（`1.6°`），右手约 `0.013 rad`
 （`0.76°`）。回零最大残差分别约 `0.82°` 和 `0.58°`，主要来自拇指 CMC 轴耦合；
-MCP、PIP、DIP 基本回到零。左右手 GUI 验收均已通过。
+MCP、PIP、DIP 基本回到零。该记录对应 L30，左右手 GUI 验收均已通过。
+
+O6 自动目标注入已经确认 6 个主动目标可以驱动 11 个完整关节。O6 左右手的动作幅度、
+静止稳定性、拇指侧摆与屈曲联动均已完成 GUI 现场验收，当前版本不再单独调整其
+Gazebo 增益。L30/O6 的 RViz 与 Gazebo 实际画面、运动方向和动作同步均已验收通过。
 
 ## 11. 常见问题
 
@@ -677,7 +813,7 @@ return_joint_velocity: 0.8
 ### 双手模式 CPU 占用过高
 
 ```bash
-ros2 launch linkerhand_retargeting mediapipe_rviz_both.launch.py \
+ros2 launch linkerhand_bringup mediapipe_rviz.launch.py \
   processing_fps:=8.0
 ```
 

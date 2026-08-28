@@ -1,0 +1,169 @@
+schema_version: 1
+model_id: l30
+
+# 顺序与当前已经验收的 L30 JointState 输出完全一致。
+active_joints:
+  - wrist_pitch
+  - pinky_mcp_roll
+  - pinky_mcp_pitch
+  - pinky_pip
+  - ring_mcp_roll
+  - ring_mcp_pitch
+  - ring_pip
+  - middle_mcp_roll
+  - middle_mcp_pitch
+  - middle_pip
+  - index_mcp_roll
+  - index_mcp_pitch
+  - index_pip
+  - thumb_cmc_yaw
+  - thumb_cmc_pitch
+  - thumb_mcp
+  - thumb_dip
+
+thumb_joints:
+  - thumb_cmc_yaw
+  - thumb_cmc_pitch
+  - thumb_mcp
+  - thumb_dip
+
+full_joints:
+  - wrist_pitch
+  - pinky_mcp_roll
+  - pinky_mcp_pitch
+  - pinky_pip
+  - pinky_dip
+  - ring_mcp_roll
+  - ring_mcp_pitch
+  - ring_pip
+  - ring_dip
+  - middle_mcp_roll
+  - middle_mcp_pitch
+  - middle_pip
+  - middle_dip
+  - index_mcp_roll
+  - index_mcp_pitch
+  - index_pip
+  - index_dip
+  - thumb_cmc_yaw
+  - thumb_cmc_roll
+  - thumb_cmc_pitch
+  - thumb_mcp
+  - thumb_dip
+
+mimic_joints:
+  pinky_dip: {source: pinky_pip, multiplier: 1.0, offset: 0.0}
+  ring_dip: {source: ring_pip, multiplier: 1.0, offset: 0.0}
+  middle_dip: {source: middle_pip, multiplier: 1.0, offset: 0.0}
+  index_dip: {source: index_pip, multiplier: 1.0, offset: 0.0}
+
+locked_joints:
+  thumb_cmc_roll: 0.0
+
+# 这里保留迁移前代码中的弧度默认值。左右手实测 YAML 仍会覆盖这些默认值。
+mapping_defaults:
+  wrist_pitch: &fixed
+    source: ''
+    input_min_rad: 0.0
+    input_max_rad: 1.0
+    output_min_rad: 0.0
+    output_max_rad: 0.0
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  pinky_mcp_roll: *fixed
+  pinky_mcp_pitch:
+    source: pinky_mcp_flexion
+    input_min_rad: 0.0
+    input_max_rad: 1.20
+    output_min_rad: 0.0
+    output_max_rad: 1.40
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  pinky_pip:
+    source: pinky_pip_flexion
+    input_min_rad: 0.3490659
+    input_max_rad: 1.3962634
+    output_min_rad: 0.0
+    output_max_rad: 1.57
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  ring_mcp_roll: *fixed
+  ring_mcp_pitch:
+    source: ring_mcp_flexion
+    input_min_rad: 0.0
+    input_max_rad: 1.20
+    output_min_rad: 0.0
+    output_max_rad: 1.40
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  ring_pip:
+    source: ring_pip_flexion
+    input_min_rad: 0.3490659
+    input_max_rad: 1.3962634
+    output_min_rad: 0.0
+    output_max_rad: 1.57
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  middle_mcp_roll: *fixed
+  middle_mcp_pitch:
+    source: middle_mcp_flexion
+    input_min_rad: 0.0
+    input_max_rad: 1.20
+    output_min_rad: 0.0
+    output_max_rad: 1.40
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  middle_pip:
+    source: middle_pip_flexion
+    input_min_rad: 0.5235988
+    input_max_rad: 1.4835299
+    output_min_rad: 0.0
+    output_max_rad: 1.57
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  index_mcp_roll: *fixed
+  index_mcp_pitch:
+    source: index_mcp_flexion
+    input_min_rad: 0.0
+    input_max_rad: 1.20
+    output_min_rad: 0.0
+    output_max_rad: 1.40
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  index_pip:
+    source: index_pip_flexion
+    input_min_rad: 0.2617994
+    input_max_rad: 1.3089969
+    output_min_rad: 0.0
+    output_max_rad: 1.57
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  thumb_cmc_yaw: *fixed
+  thumb_cmc_pitch: *fixed
+  thumb_mcp:
+    source: thumb_mcp_flexion
+    input_min_rad: 0.0872665
+    input_max_rad: 0.6108652
+    output_min_rad: 0.0
+    output_max_rad: 1.4835299
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
+  thumb_dip:
+    source: thumb_ip_flexion
+    input_min_rad: 0.0
+    input_max_rad: 1.50
+    output_min_rad: 0.0
+    output_max_rad: 1.40
+    invert: false
+    fixed_position_rad: 0.0
+    safe_position_rad: 0.0
