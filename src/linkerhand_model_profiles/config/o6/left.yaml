@@ -1,0 +1,15 @@
+schema_version: 1
+model_id: o6
+side: left
+description_package: linkerhand_o6_left_description
+urdf: urdf/linkerhand_o6_left.urdf
+robot_name: linkerhand_o6_left
+root_link: base_footprint
+world_joint_name: world_to_base_footprint
+
+# 官方左手拇指 IP 联动倍率与右手不同。
+mimic_overrides:
+  thumb_ip: {multiplier: 2.29}
+
+gazebo:
+  inertial_scale: 1.0

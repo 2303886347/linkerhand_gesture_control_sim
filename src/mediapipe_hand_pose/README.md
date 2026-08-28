@@ -57,6 +57,9 @@ ros2 launch mediapipe_hand_pose pipeline.launch.py \
 角度话题按 ROS 标准使用弧度。四指输出 MCP 侧摆、MCP 屈曲、PIP 和 DIP 屈曲；
 拇指输出 CMC 外展、CMC 屈曲、MCP 屈曲和 IP 屈曲。
 
+调试预览会同时显示 `Thumb Abd` 和 `Thumb CMC`，用于 O6 拇指侧摆标定；其中
+`Thumb CMC` 对应 `thumb_cmc_flexion`，当前作为 O6 掌面内侧摆的默认输入候选。
+
 ## One Euro 滤波
 
 One Euro 在静止时增强平滑，在动作加快时提高响应速度：

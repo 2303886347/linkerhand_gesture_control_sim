@@ -1,15 +1,29 @@
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 import xml.etree.ElementTree as ET
 
+from ament_index_python.packages import get_package_share_directory
 from linkerhand_gazebo_control.joints import CONTROLLED_JOINTS
 from linkerhand_gazebo_control.urdf_builder import (
     DEFAULT_INERTIAL_SCALE,
     build_controlled_urdf,
 )
+from linkerhand_model_profiles import load_model_profile
 from linkerhand_retargeting.joints import MIMIC_JOINTS
 
 
 WORKSPACE_SRC = Path(__file__).resolve().parents[2]
+
+
+def assert_meshes_use_existing_file_uris(robot):
+    meshes = robot.findall('link/visual/geometry/mesh')
+    assert meshes
+    for mesh in meshes:
+        filename = mesh.get('filename')
+        parsed = urlparse(filename)
+        assert parsed.scheme == 'file'
+        assert not filename.startswith(('package://', 'model://'))
+        assert Path(unquote(parsed.path)).is_file()
 
 
 def test_builder_adds_native_controller_and_joint_state_publisher():
@@ -28,6 +42,7 @@ def test_builder_adds_native_controller_and_joint_state_publisher():
     assert robot.find("link[@name='world']") is not None
     assert robot.findall('link/collision') == []
     assert robot.findall('link/visual')
+    assert_meshes_use_existing_file_uris(robot)
     for dynamics in robot.findall('joint/dynamics'):
         assert float(dynamics.get('friction')) == 0.0
         assert float(dynamics.get('damping')) > 0.0
@@ -84,6 +99,7 @@ def test_left_builder_corrects_exported_inertial_scale():
         robot.find("link[@name='index_proximal']/inertial/mass").get('value')
     )
 
+    assert_meshes_use_existing_file_uris(robot)
     assert scaled_mass == source_mass * DEFAULT_INERTIAL_SCALE['left']
 
 
@@ -105,3 +121,45 @@ def test_builder_rejects_non_positive_inertial_scale():
         assert 'inertial_scale' in str(error)
     else:
         raise AssertionError('零惯量缩放必须被拒绝')
+
+
+def test_o6_builder_uses_profile_joint_order_and_assets():
+    for side in ('left', 'right'):
+        profile = load_model_profile('o6', side)
+        result = build_controlled_urdf(
+            profile.urdf_path,
+            side,
+            profile=profile,
+        )
+        robot = ET.fromstring(result)
+
+        assert robot.get('name') == f'linkerhand_o6_{side}'
+        assert robot.find("link[@name='world']") is not None
+        assert robot.findall('link/collision') == []
+        assert robot.findall('joint/mimic') == []
+
+        assert_meshes_use_existing_file_uris(robot)
+        expected_share = Path(
+            get_package_share_directory(
+                f'linkerhand_o6_{side}_description'
+            )
+        ).resolve()
+        expected_meshes = {
+            path.resolve()
+            for path in (expected_share / 'meshes').rglob('*')
+            if path.is_file()
+        }
+        for mesh in robot.findall('link/visual/geometry/mesh'):
+            mesh_path = Path(unquote(urlparse(mesh.get('filename')).path))
+            assert mesh_path.resolve() in expected_meshes
+
+        native = robot.find(
+            "gazebo/plugin["
+            "@name='linkerhand_gazebo_plugin::OnlineJointController']"
+        )
+        assert [item.text for item in native.findall('joint_name')] == list(
+            profile.full_joints
+        )
+        assert native.find('topic').text == (
+            f'/{side}/gazebo_joint_trajectory'
+        )

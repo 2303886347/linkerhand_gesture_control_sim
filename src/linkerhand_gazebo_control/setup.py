@@ -14,6 +14,7 @@ setup(
         ('share/' + PACKAGE_NAME, ['package.xml', 'README.md', 'pytest.ini']),
         ('share/' + PACKAGE_NAME + '/config', glob('config/*.yaml')),
         ('share/' + PACKAGE_NAME + '/launch', glob('launch/*.launch.py')),
+        ('share/' + PACKAGE_NAME + '/worlds', glob('worlds/*.sdf')),
     ],
     install_requires=['setuptools'],
     tests_require=['pytest'],

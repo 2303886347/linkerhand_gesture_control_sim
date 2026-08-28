@@ -9,93 +9,17 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import String
 
+from linkerhand_model_profiles import load_model_profile
 from linkerhand_retargeting.filters import (
     JointDeadbandHysteresis,
     exponential_moving_average,
     move_towards,
 )
-from linkerhand_retargeting.joints import INDEPENDENT_JOINTS, JOINT_LIMITS
 from linkerhand_retargeting.mapping import (
     JointMapping,
     angle_to_radians,
     radians_to_angle,
 )
-
-
-DEFAULT_MAPPINGS = {
-    'wrist_pitch': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'pinky_mcp_roll': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'pinky_mcp_pitch': (
-        'pinky_mcp_flexion', 0.0, 1.20, 0.0, 1.40, False, 0.0, 0.0
-    ),
-    'pinky_pip': (
-        'pinky_pip_flexion',
-        0.3490659,
-        1.3962634,
-        0.0,
-        1.57,
-        False,
-        0.0,
-        0.0,
-    ),
-    'ring_mcp_roll': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'ring_mcp_pitch': (
-        'ring_mcp_flexion', 0.0, 1.20, 0.0, 1.40, False, 0.0, 0.0
-    ),
-    'ring_pip': (
-        'ring_pip_flexion',
-        0.3490659,
-        1.3962634,
-        0.0,
-        1.57,
-        False,
-        0.0,
-        0.0,
-    ),
-    'middle_mcp_roll': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'middle_mcp_pitch': (
-        'middle_mcp_flexion', 0.0, 1.20, 0.0, 1.40, False, 0.0, 0.0
-    ),
-    'middle_pip': (
-        'middle_pip_flexion',
-        0.5235988,
-        1.4835299,
-        0.0,
-        1.57,
-        False,
-        0.0,
-        0.0,
-    ),
-    'index_mcp_roll': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'index_mcp_pitch': (
-        'index_mcp_flexion', 0.0, 1.20, 0.0, 1.40, False, 0.0, 0.0
-    ),
-    'index_pip': (
-        'index_pip_flexion',
-        0.2617994,
-        1.3089969,
-        0.0,
-        1.57,
-        False,
-        0.0,
-        0.0,
-    ),
-    'thumb_cmc_yaw': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'thumb_cmc_pitch': ('', 0.0, 1.0, 0.0, 0.0, False, 0.0, 0.0),
-    'thumb_mcp': (
-        'thumb_mcp_flexion',
-        0.0872665,
-        0.6108652,
-        0.0,
-        1.4835299,
-        False,
-        0.0,
-        0.0,
-    ),
-    'thumb_dip': (
-        'thumb_ip_flexion', 0.0, 1.50, 0.0, 1.40, False, 0.0, 0.0
-    ),
-}
 
 
 class LinkerHandRetargetingNode(Node):
@@ -119,6 +43,13 @@ class LinkerHandRetargetingNode(Node):
         self.declare_parameter('joint_deadband.settle_frames', 3)
         self.declare_parameter('joint_deadband.thumb_start_moving_deg', 2.5)
         self.declare_parameter('joint_deadband.thumb_stop_moving_deg', 0.8)
+
+        self.declare_parameter('model_id', 'l30')
+        self.declare_parameter('model_side', 'left')
+        self.profile = load_model_profile(
+            self.get_parameter('model_id').value,
+            self.get_parameter('model_side').value,
+        )
 
         self.mappings, self.safe_pose = self._declare_and_load_mappings()
         self.deadband_enabled = bool(
@@ -160,7 +91,8 @@ class LinkerHandRetargetingNode(Node):
 
         driven_count = sum(mapping.driven for mapping in self.mappings.values())
         self.get_logger().info(
-            f'正在订阅 {input_topic}；基础阶段启用 {driven_count} 个屈曲关节；'
+            f'已加载型号 {self.profile.model_id}/{self.profile.side}；'
+            f'正在订阅 {input_topic}；启用 {driven_count} 个映射关节；'
             f'映射配置单位={self.get_parameter("mapping_angle_unit").value}；'
             f'关节死区={"启用" if self.deadband_enabled else "关闭"}；'
             f'输出 {output_topic}'
@@ -195,8 +127,8 @@ class LinkerHandRetargetingNode(Node):
         )
 
         filters = {}
-        for joint in INDEPENDENT_JOINTS:
-            is_thumb = joint.startswith('thumb_')
+        for joint in self.profile.active_joints:
+            is_thumb = joint in self.profile.thumb_joints
             filters[joint] = JointDeadbandHysteresis(
                 initial_value=self.safe_pose[joint],
                 start_threshold=thumb_start if is_thumb else finger_start,
@@ -214,20 +146,39 @@ class LinkerHandRetargetingNode(Node):
         # 提前校验单位，避免部分关节加载后才发现配置错误。
         angle_to_radians(0.0, mapping_angle_unit)
 
-        for joint in INDEPENDENT_JOINTS:
-            defaults = DEFAULT_MAPPINGS[joint]
-            (
-                source,
-                input_min,
-                input_max,
-                output_min,
-                output_max,
-                invert,
-                fixed,
-                safe_position,
-            ) = defaults
+        for joint in self.profile.active_joints:
+            defaults = self.profile.mapping_defaults[joint]
+            source = defaults.source_angle
+            input_min = defaults.input_min
+            input_max = defaults.input_max
+            output_min = defaults.output_min
+            output_max = defaults.output_max
+            invert = defaults.invert
+            fixed = defaults.fixed_position
+            safe_position = defaults.safe_position
             prefix = f'mapping.{joint}'
             self.declare_parameter(f'{prefix}.source', source)
+            configured_source = str(
+                self.get_parameter(f'{prefix}.source').value
+            ).strip()
+            default_sources = [configured_source] if configured_source else []
+            if default_sources:
+                self.declare_parameter(f'{prefix}.sources', default_sources)
+            else:
+                # ROS 2 Humble 的空数组无法推断参数类型，用空字符串占位后过滤。
+                self.declare_parameter(f'{prefix}.sources', [''])
+            configured_sources = [
+                str(value).strip()
+                for value in self.get_parameter(f'{prefix}.sources').value
+                if str(value).strip()
+            ]
+            if configured_sources:
+                self.declare_parameter(
+                    f'{prefix}.source_weights',
+                    [1.0] * len(configured_sources),
+                )
+            else:
+                self.declare_parameter(f'{prefix}.source_weights', [1.0])
             self.declare_parameter(
                 f'{prefix}.input_min',
                 radians_to_angle(input_min, mapping_angle_unit),
@@ -254,10 +205,10 @@ class LinkerHandRetargetingNode(Node):
                 radians_to_angle(safe_position, mapping_angle_unit),
             )
 
-            joint_min, joint_max = JOINT_LIMITS[joint]
+            joint_min, joint_max = self.profile.joint_limits[joint]
             mappings[joint] = JointMapping(
                 target_joint=joint,
-                source_angle=str(self.get_parameter(f'{prefix}.source').value),
+                source_angle=configured_source,
                 input_min=angle_to_radians(
                     self.get_parameter(f'{prefix}.input_min').value,
                     mapping_angle_unit,
@@ -280,6 +231,17 @@ class LinkerHandRetargetingNode(Node):
                 fixed_position=angle_to_radians(
                     self.get_parameter(f'{prefix}.fixed_position').value,
                     mapping_angle_unit,
+                ),
+                source_angles=tuple(configured_sources),
+                source_weights=(
+                    tuple(
+                        float(value)
+                        for value in self.get_parameter(
+                            f'{prefix}.source_weights'
+                        ).value
+                    )
+                    if configured_sources
+                    else ()
                 ),
             )
             configured_safe_position = angle_to_radians(
@@ -312,9 +274,10 @@ class LinkerHandRetargetingNode(Node):
         missing = []
         for joint, mapping in self.mappings.items():
             if mapping.driven:
-                source_value = source_angles.get(mapping.source_angle)
-                if source_value is None or not math.isfinite(source_value):
-                    missing.append(mapping.source_angle)
+                try:
+                    source_value = mapping.combine_source_angles(source_angles)
+                except KeyError as error:
+                    missing.extend(error.args[0])
                     continue
                 raw_target[joint] = mapping.map_angle(source_value)
             else:
@@ -329,7 +292,7 @@ class LinkerHandRetargetingNode(Node):
             self.last_observation_valid = False
             return
 
-        for joint in INDEPENDENT_JOINTS:
+        for joint in self.profile.active_joints:
             stabilized_target = raw_target[joint]
             if self.deadband_enabled:
                 stabilized_target = self.deadband_filters[joint].update(
@@ -388,15 +351,17 @@ class LinkerHandRetargetingNode(Node):
             else self.max_joint_velocity
         )
         maximum_step = velocity_limit * delta_time
-        for joint in INDEPENDENT_JOINTS:
+        for joint in self.profile.active_joints:
             self.current_output[joint] = move_towards(
                 self.current_output[joint], desired[joint], maximum_step
             )
 
         message = JointState()
         message.header.stamp = self.get_clock().now().to_msg()
-        message.name = list(INDEPENDENT_JOINTS)
-        message.position = [self.current_output[joint] for joint in INDEPENDENT_JOINTS]
+        message.name = list(self.profile.active_joints)
+        message.position = [
+            self.current_output[joint] for joint in self.profile.active_joints
+        ]
         self.publisher.publish(message)
         self._set_status(status)
 

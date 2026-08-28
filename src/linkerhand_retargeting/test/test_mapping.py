@@ -59,6 +59,57 @@ def test_invalid_input_range_raises_error():
         mapping.map_angle(1.0)
 
 
+def test_multiple_source_angles_are_fused_by_normalized_weights():
+    mapping = make_mapping(
+        source_angles=('mcp', 'pip'),
+        source_weights=(0.35, 0.65),
+    )
+
+    combined = mapping.combine_source_angles({'mcp': 1.0, 'pip': 2.0})
+
+    assert combined == pytest.approx(1.65)
+
+
+def test_legacy_single_source_remains_compatible():
+    mapping = make_mapping(source_angle='legacy_angle')
+
+    assert mapping.source_angles == ('legacy_angle',)
+    assert mapping.source_weights == (1.0,)
+    assert mapping.combine_source_angles({'legacy_angle': 0.75}) == pytest.approx(
+        0.75
+    )
+
+
+def test_fused_mapping_reports_all_missing_or_invalid_sources():
+    mapping = make_mapping(
+        source_angles=('mcp', 'pip'), source_weights=(0.35, 0.65)
+    )
+
+    with pytest.raises(KeyError) as error:
+        mapping.combine_source_angles({'mcp': float('nan')})
+
+    assert error.value.args[0] == ('mcp', 'pip')
+
+
+@pytest.mark.parametrize(
+    'source_angles,source_weights',
+    [
+        (('mcp', 'pip'), (1.0,)),
+        (('mcp', 'mcp'), (0.5, 0.5)),
+        (('mcp', 'pip'), (0.0, 0.0)),
+        (('mcp', 'pip'), (0.5, -0.5)),
+    ],
+)
+def test_invalid_source_fusion_configuration_is_rejected(
+    source_angles, source_weights
+):
+    with pytest.raises(ValueError):
+        make_mapping(
+            source_angles=source_angles,
+            source_weights=source_weights,
+        )
+
+
 def test_degree_configuration_converts_to_radians():
     assert angle_to_radians(180.0, 'deg') == pytest.approx(3.141592653589793)
     assert radians_to_angle(3.141592653589793, 'deg') == pytest.approx(180.0)

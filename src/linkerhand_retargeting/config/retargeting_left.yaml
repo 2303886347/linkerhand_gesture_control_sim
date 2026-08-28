@@ -1,6 +1,8 @@
 /**:
   ros__parameters:
     # 左手实测标定文件。
+    model_id: l30
+    model_side: left
     input_topic: /mediapipe/hand_pose
     output_topic: /linkerhand/target_joint_states
     status_topic: /linkerhand/retargeting_status

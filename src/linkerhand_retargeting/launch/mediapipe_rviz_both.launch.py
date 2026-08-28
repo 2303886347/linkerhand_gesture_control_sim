@@ -1,15 +1,24 @@
-"""同时识别左右手，并在同一个 RViz 中显示两个 Linker Hand 模型。"""
+"""同时识别左右手，并在同一个 RViz 中显示任意已注册型号组合。"""
 
 from pathlib import Path
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
+from launch.actions import (
+    DeclareLaunchArgument,
+    GroupAction,
+    IncludeLaunchDescription,
+    LogInfo,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.logging import get_logger
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
+
+from linkerhand_retargeting.bringup import resolve_rviz_hand_spec
 
 
 def _mediapipe_node(
@@ -61,8 +70,20 @@ def _mediapipe_node(
     )
 
 
-def _retargeting_nodes(side, parameters_file):
+def _retargeting_nodes(spec):
+    side = spec.side
     target_topic = f'/{side}/linkerhand/target_joint_states'
+    retargeting_parameters = []
+    if spec.parameters_file is not None:
+        retargeting_parameters.append(str(spec.parameters_file))
+    retargeting_parameters.append({
+        'model_id': spec.model_id,
+        'model_side': side,
+        'accepted_hand': side,
+        'input_topic': f'/{side}/mediapipe/hand_pose',
+        'output_topic': target_topic,
+        'status_topic': f'/{side}/linkerhand/retargeting_status',
+    })
     return [
         Node(
             package='linkerhand_retargeting',
@@ -70,14 +91,7 @@ def _retargeting_nodes(side, parameters_file):
             namespace=side,
             name='linkerhand_retargeting',
             output='screen',
-            parameters=[
-                parameters_file,
-                {
-                    'input_topic': f'/{side}/mediapipe/hand_pose',
-                    'output_topic': target_topic,
-                    'status_topic': f'/{side}/linkerhand/retargeting_status',
-                },
-            ],
+            parameters=retargeting_parameters,
         ),
         Node(
             package='linkerhand_retargeting',
@@ -85,12 +99,12 @@ def _retargeting_nodes(side, parameters_file):
             namespace=side,
             name='linkerhand_rviz_joint_state_adapter',
             output='screen',
-            parameters=[
-                {
-                    'input_topic': target_topic,
-                    'output_topic': f'/{side}/joint_states',
-                }
-            ],
+            parameters=[{
+                'model_id': spec.model_id,
+                'model_side': side,
+                'input_topic': target_topic,
+                'output_topic': f'/{side}/joint_states',
+            }],
         ),
     ]
 
@@ -112,7 +126,7 @@ def _robot_state_publisher(side, robot_description):
     )
 
 
-def _mount_transform(side, y_position):
+def _mount_transform(side, root_link, y_position):
     return Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -126,35 +140,31 @@ def _mount_transform(side, y_position):
             '--pitch', '0.0',
             '--roll', '0.0',
             '--frame-id', 'world',
-            '--child-frame-id', f'{side}/base_footprint',
+            '--child-frame-id', f'{side}/{root_link}',
         ],
     )
 
 
-def generate_launch_description():
+def _launch_setup(context):
     camera_share = Path(get_package_share_directory('usb_camera_demo'))
     mediapipe_share = Path(get_package_share_directory('mediapipe_hand_pose'))
-    retargeting_share = Path(get_package_share_directory('linkerhand_retargeting'))
-    left_share = Path(
-        get_package_share_directory('linkerhand_l30_left_description')
+    retargeting_share = Path(
+        get_package_share_directory('linkerhand_retargeting')
     )
-    right_share = Path(
-        get_package_share_directory('linkerhand_l30_right_description')
+    left_spec = resolve_rviz_hand_spec(
+        LaunchConfiguration('left_model').perform(context),
+        'left',
+        retargeting_share,
+        LaunchConfiguration('left_parameters_file').perform(context),
+    )
+    right_spec = resolve_rviz_hand_spec(
+        LaunchConfiguration('right_model').perform(context),
+        'right',
+        retargeting_share,
+        LaunchConfiguration('right_parameters_file').perform(context),
     )
 
     mediapipe_config = str(mediapipe_share / 'config' / 'hand_pose.yaml')
-    left_parameters = str(
-        retargeting_share / 'config' / 'retargeting_left.yaml'
-    )
-    right_parameters = str(
-        retargeting_share / 'config' / 'retargeting_right.yaml'
-    )
-    left_description = (
-        left_share / 'urdf' / 'linkerhand_l30_left.urdf'
-    ).read_text(encoding='utf-8')
-    right_description = (
-        right_share / 'urdf' / 'linkerhand_l30_right.urdf'
-    ).read_text(encoding='utf-8')
 
     camera = GroupAction(
         scoped=True,
@@ -174,10 +184,87 @@ def generate_launch_description():
         ],
     )
 
-    left_retargeting = _retargeting_nodes('left', left_parameters)
-    right_retargeting = _retargeting_nodes('right', right_parameters)
+    actions = [
+        LogInfo(
+            msg=(
+                '多型号 RViz 组合：'
+                f'left={left_spec.model_id}, right={right_spec.model_id}'
+            )
+        ),
+    ]
+    for spec in (left_spec, right_spec):
+        if spec.uses_profile_defaults:
+            get_logger('linkerhand_multi_model_rviz').warning(
+                f'未找到 {spec.model_id}/{spec.side} 的默认标定 YAML；'
+                '将回退到型号 profile 默认映射。可通过 '
+                f'{spec.side}_parameters_file:=<yaml> 显式指定。'
+            )
 
+    actions.extend([
+        camera,
+        _mediapipe_node(
+            'left',
+            mediapipe_config,
+            LaunchConfiguration('processing_fps'),
+            LaunchConfiguration('show_previews'),
+            LaunchConfiguration('mirror_preview'),
+            LaunchConfiguration('use_one_euro_filter'),
+            LaunchConfiguration('one_euro_min_cutoff'),
+            LaunchConfiguration('one_euro_beta'),
+        ),
+        _mediapipe_node(
+            'right',
+            mediapipe_config,
+            LaunchConfiguration('processing_fps'),
+            LaunchConfiguration('show_previews'),
+            LaunchConfiguration('mirror_preview'),
+            LaunchConfiguration('use_one_euro_filter'),
+            LaunchConfiguration('one_euro_min_cutoff'),
+            LaunchConfiguration('one_euro_beta'),
+        ),
+        *_retargeting_nodes(left_spec),
+        *_retargeting_nodes(right_spec),
+        _robot_state_publisher('left', left_spec.robot_description),
+        _robot_state_publisher('right', right_spec.robot_description),
+        _mount_transform('left', left_spec.profile.root_link, 0.16),
+        _mount_transform('right', right_spec.profile.root_link, -0.16),
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2_both_hands',
+            arguments=[
+                '-d',
+                str(retargeting_share / 'rviz' / 'both_hands.rviz'),
+            ],
+            condition=IfCondition(LaunchConfiguration('use_rviz')),
+            output='screen',
+        ),
+    ])
+    return actions
+
+
+def generate_launch_description():
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'left_model',
+            default_value='l30',
+            description='左手机械手型号 profile，例如 l30 或 o6。',
+        ),
+        DeclareLaunchArgument(
+            'right_model',
+            default_value='l30',
+            description='右手机械手型号 profile，例如 l30 或 o6。',
+        ),
+        DeclareLaunchArgument(
+            'left_parameters_file',
+            default_value='',
+            description='左手个人标定 YAML；为空时使用型号默认配置。',
+        ),
+        DeclareLaunchArgument(
+            'right_parameters_file',
+            default_value='',
+            description='右手个人标定 YAML；为空时使用型号默认配置。',
+        ),
         DeclareLaunchArgument(
             'device', default_value='/dev/video0', description='摄像头设备路径。'
         ),
@@ -225,42 +312,5 @@ def generate_launch_description():
             default_value='true',
             description='是否启动双手 RViz。',
         ),
-        camera,
-        _mediapipe_node(
-            'left',
-            mediapipe_config,
-            LaunchConfiguration('processing_fps'),
-            LaunchConfiguration('show_previews'),
-            LaunchConfiguration('mirror_preview'),
-            LaunchConfiguration('use_one_euro_filter'),
-            LaunchConfiguration('one_euro_min_cutoff'),
-            LaunchConfiguration('one_euro_beta'),
-        ),
-        _mediapipe_node(
-            'right',
-            mediapipe_config,
-            LaunchConfiguration('processing_fps'),
-            LaunchConfiguration('show_previews'),
-            LaunchConfiguration('mirror_preview'),
-            LaunchConfiguration('use_one_euro_filter'),
-            LaunchConfiguration('one_euro_min_cutoff'),
-            LaunchConfiguration('one_euro_beta'),
-        ),
-        *left_retargeting,
-        *right_retargeting,
-        _robot_state_publisher('left', left_description),
-        _robot_state_publisher('right', right_description),
-        _mount_transform('left', 0.16),
-        _mount_transform('right', -0.16),
-        Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2_both_hands',
-            arguments=[
-                '-d',
-                str(retargeting_share / 'rviz' / 'both_hands.rviz'),
-            ],
-            condition=IfCondition(LaunchConfiguration('use_rviz')),
-            output='screen',
-        ),
+        OpaqueFunction(function=_launch_setup),
     ])
