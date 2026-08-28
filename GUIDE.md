@@ -377,7 +377,69 @@ mapping_angle_unit: deg
 
 ROS `JointState`、URDF、RViz 和后续控制器内部仍使用弧度。
 
-### 7.1 左手实测范围
+### 7.1 Qt 个人标定上位机
+
+```bash
+ros2 launch linkerhand_bringup calibration_gui.launch.py
+```
+
+在上位机顶部选择 L30/O6、左手/右手和摄像头，再点击“连接”。标注画面、骨架、
+左右手结果、置信度和画面帧率都显示在同一窗口内。
+
+当前可以分别选择“张开手掌、自然握拳、拇指收拢、拇指展开”，由用户点击按钮后
+立即采样。每个姿态默认采样 2 秒，支持取消和重新采样；成功后只切换到下一姿态，
+不会自动开始。界面会检查目标手、手侧、置信度、整手可见性、有效帧率以及角度
+稳定度，并显示具体失败原因。
+
+四个姿态完成后切换到“个人配置”页。只读结果表会按运行时相同的规则计算各驱动关节
+的输入最小角、最大角和活动范围；O6 四指仍采用 `35% MCP + 65% PIP`，拇指侧摆
+采用“展开为最小、收拢为最大”。默认最小活动范围为 5 度，范围过小或方向反向时会
+明确标出关节并阻止生成。
+
+个人配置默认保存在：
+
+```text
+~/.config/linkerhand_gesture_control/calibration
+```
+
+“生成配置”会新建档案，不覆盖仓库默认 YAML；选择已有配置后可用本次采样更新它，
+也可以“另存为新配置”到任意路径。通过“导入 YAML”可以登记默认目录之外的已有个人
+配置；列表只显示当前型号和手侧匹配的档案。生成的文件仍是可直接传给 ROS 2
+`parameters_file` 的标准参数 YAML，同时保存配置名称、摄像头、质量阈值和四姿态
+采样统计。
+
+### 7.2 Qt 一键仿真验证
+
+在“配置档案”中选择一份已经保存、且与当前型号和手侧匹配的个人配置后，底部的
+“RViz 验证”和“Gazebo 验证”按钮会启用。存在尚未保存的重新采样结果时，按钮会
+禁用，避免验证到旧文件。
+
+点击验证后，上位机会执行以下交接：
+
+1. 如果标定摄像头处于连接状态，先停止 GUI 自己的 MediaPipe 和摄像头进程。
+2. 等设备完全释放后，使用当前型号、手侧、摄像头参数和个人 YAML 启动单手验证。
+3. 验证 launch 打开 MediaPipe 调试预览，并启动对应的 RViz 或 Gazebo 仿真。
+4. 点击 GUI 中的“停止 RViz 验证”或“停止 Gazebo 验证”，清理整个 launch 进程组。
+5. 如果验证前 GUI 摄像头已连接，停止后会自动恢复原来的标定连接；验证前未连接则
+   保持未连接。
+
+验证运行期间不能切换型号、手侧、配置或摄像头，防止配置和实际进程不一致。不要只
+依赖关闭 RViz/Gazebo 图形窗口来结束验证，因为摄像头和 ROS 节点仍可能继续运行；
+应使用 GUI 的停止按钮完成统一清理。launch 的完整日志继续输出在启动 GUI 的终端中。
+
+个人配置也可以通过命令行直接验证：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_rviz_single.launch.py \
+  model_id:=o6 side:=left \
+  parameters_file:=/完整路径/个人配置.yaml
+
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=left \
+  parameters_file:=/完整路径/个人配置.yaml
+```
+
+### 7.3 项目默认左手实测范围
 
 | 关节 | MediaPipe 输入 | RViz 输出 |
 | --- | --- | --- |
@@ -393,7 +455,7 @@ ROS `JointState`、URDF、RViz 和后续控制器内部仍使用弧度。
 src/linkerhand_retargeting/config/retargeting_left.yaml
 ```
 
-### 7.2 右手实测范围
+### 7.4 项目默认右手实测范围
 
 | 关节 | MediaPipe 输入 | RViz 输出 |
 | --- | --- | --- |
@@ -600,6 +662,16 @@ Gazebo 只支持单手运行，不要同时启动两个入口来替代双手模�
 Gazebo 世界和摄像头。L30 两侧已完成 GUI 验收；O6 两侧完成了模型生成、目标注入和
 约 60 Hz 状态反馈自动验证，并已完成左右手 GUI 显示与动作验收。
 
+默认加载项目自带的 `linkerhand_demo.sdf`，相机从掌心方向聚焦手掌和五指，并使用
+降低高光后的中性光照。Qt 上位机的“Gazebo 验证”和命令行入口使用同一套视角。
+需要其他 world 时可以显式覆盖：
+
+```bash
+ros2 launch linkerhand_bringup mediapipe_gazebo.launch.py \
+  model_id:=l30 side:=left \
+  world:=/完整路径/custom.sdf
+```
+
 ### 10.3 控制链路
 
 ```text
@@ -679,9 +751,9 @@ ros2 topic echo /right/joint_states sensor_msgs/msg/JointState --once
 （`0.76°`）。回零最大残差分别约 `0.82°` 和 `0.58°`，主要来自拇指 CMC 轴耦合；
 MCP、PIP、DIP 基本回到零。该记录对应 L30，左右手 GUI 验收均已通过。
 
-O6 自动目标注入已经确认 6 个主动目标可以驱动 11 个完整关节。由于 O6 从动指节在
-Gazebo 中存在一定模型耦合和稳态偏差，GUI 验收时需重点观察动作幅度、静止稳定性和
-拇指联动；确认视觉效果后再决定是否单独调整 O6 的 Gazebo 增益。
+O6 自动目标注入已经确认 6 个主动目标可以驱动 11 个完整关节。O6 左右手的动作幅度、
+静止稳定性、拇指侧摆与屈曲联动均已完成 GUI 现场验收，当前版本不再单独调整其
+Gazebo 增益。L30/O6 的 RViz 与 Gazebo 实际画面、运动方向和动作同步均已验收通过。
 
 ## 11. 常见问题
 

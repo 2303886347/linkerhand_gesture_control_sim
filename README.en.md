@@ -11,14 +11,15 @@ A camera-driven ROS 2 project for real-time Linker Hand L30/O6 gesture simulatio
 [![RViz 2](https://img.shields.io/badge/RViz_2-Multi_Model-5C6BC0)](https://github.com/ros2/rviz)
 [![Gazebo](https://img.shields.io/badge/Gazebo-Sim_6-F58113?logo=gazebo&logoColor=white)](https://gazebosim.org/)
 [![Project Status](https://img.shields.io/badge/status-stable-brightgreen)](#project-status)
+[![Release](https://img.shields.io/badge/release-v1.0.0-2E7D32)](CHANGELOG.md)
 [![Experience](https://img.shields.io/badge/experience-try_it_first-00A67E)](#overview)
-[![Tests](https://img.shields.io/badge/tests-108_passing-brightgreen)](#validation)
+[![Tests](https://img.shields.io/badge/tests-176_passing-brightgreen)](#validation)
 [![License](https://img.shields.io/badge/license-Apache--2.0_%7C_BSD--3--Clause-green)](#license)
 [![GitHub stars](https://img.shields.io/github/stars/2303886347/linkerhand_gesture_control_sim?style=flat&color=yellow)](https://github.com/2303886347/linkerhand_gesture_control_sim/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/2303886347/linkerhand_gesture_control_sim?color=orange)](https://github.com/2303886347/linkerhand_gesture_control_sim/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/2303886347/linkerhand_gesture_control_sim?color=blue)](https://github.com/2303886347/linkerhand_gesture_control_sim/pulls)
 
-[简体中文](README.md) | [English](README.en.md) | [Chinese operation guide](GUIDE.md) | [Issues](https://github.com/2303886347/linkerhand_gesture_control_sim/issues/new/choose)
+[简体中文](README.md) | [English](README.en.md) | [Chinese operation guide](GUIDE.md) | [Changelog](CHANGELOG.md) | [Issues](https://github.com/2303886347/linkerhand_gesture_control_sim/issues/new/choose)
 
 </div>
 
@@ -40,8 +41,7 @@ The system captures camera frames, detects left or right hand landmarks with Med
 computes semantic human joint angles, and applies independent calibration, retargeting,
 One Euro filtering, deadband/hysteresis, EMA smoothing, and velocity limits. The final
 joint targets drive L30/O6 single-hand or mixed dual-hand models in RViz 2. Gazebo
-supports single-left and single-right L30 operation. The O6 single-hand control chain is
-connected and pending GUI motion acceptance.
+supports validated single-left and single-right L30/O6 operation.
 
 The project is centered on letting users experience real-time Linker Hand gesture
 synchronization first. RViz 2 and Gazebo Sim make the complete camera-driven interaction
@@ -57,6 +57,10 @@ and MediaPipe perception to processed joint angles and simulation display.
 - Parameterized and shortcut Gazebo launchers for L30/O6 single-hand operation.
 - A single camera shared by isolated left and right perception pipelines.
 - Independent calibration, topics, joint states, and TF trees for both hands.
+- A Qt calibration console unifying MediaPipe video, detection status, and manual four-pose sampling.
+- Sampling cancellation, independent resampling, valid-frame checks, and P90-P10 stability checks.
+- Combined joint-range validation, default profile storage, update/save-as, and external YAML import.
+- One-click single-hand RViz/Gazebo validation with automatic camera handoff from the Qt console.
 - Mirrored preview without changing handedness classification or published data.
 - Image-landmark fallback when 3D landmarks temporarily become degenerate.
 - One Euro filtering, joint deadband/hysteresis, EMA, and slew-rate limiting.
@@ -65,6 +69,7 @@ and MediaPipe perception to processed joint angles and simulation display.
 - Official O6 assets with six-active-DOF profiles and RViz/Gazebo adaptation.
 - Complete single-left and single-right Gazebo pipelines with 60 Hz joint-state feedback.
 - Full-target validation, joint speed limits, and independent model correction per hand.
+- A close-up palm-facing Gazebo world with neutral lighting and explicit world override support.
 - Chinese source comments and logs with bilingual repository documentation.
 
 ## Architecture
@@ -121,7 +126,9 @@ and a working ROS 2 graphical environment.
 
 | Viewer | Mode | Command |
 | --- | --- | --- |
+| Calibration | Qt personal calibration console | `ros2 launch linkerhand_bringup calibration_gui.launch.py` |
 | RViz 2 | Any dual-hand pair | `ros2 launch linkerhand_bringup mediapipe_rviz.launch.py left_model:=l30 right_model:=o6` |
+| RViz 2 | Parameterized single hand | `ros2 launch linkerhand_bringup mediapipe_rviz_single.launch.py model_id:=o6 side:=left` |
 | RViz 2 | L30 left | `ros2 launch linkerhand_retargeting mediapipe_rviz_left.launch.py` |
 | RViz 2 | L30 right | `ros2 launch linkerhand_retargeting mediapipe_rviz_right.launch.py` |
 | RViz 2 | O6 left | `ros2 launch linkerhand_retargeting mediapipe_rviz_o6_left.launch.py` |
@@ -136,7 +143,9 @@ See [GUIDE.md](GUIDE.md) for camera checks, calibration, filter tuning, ROS topi
 inspection, and troubleshooting.
 
 Gazebo launchers open both the MediaPipe preview and the Gazebo GUI. Append
-`device:=/dev/video2` to any command when the camera is not `/dev/video0`.
+`device:=/dev/video2` to any command when the camera is not `/dev/video0`. The default
+world opens with a close-up palm-facing view; append
+`world:=/absolute/path/to/custom.sdf` to use another world.
 
 ## Packages
 
@@ -147,6 +156,7 @@ Gazebo launchers open both the MediaPipe preview and the Gazebo GUI. Append
 | `mediapipe_hand_pose` | MediaPipe detection, preview, and One Euro filtering |
 | `linkerhand_bringup` | Parameterized and shortcut L30/O6 multi-model launchers |
 | `linkerhand_model_profiles` | Validated model, side, joint-limit, and description registry |
+| `linkerhand_calibration` | Qt manual calibration, quality checks, and personal YAML profiles |
 | `linkerhand_retargeting` | Calibration, mapping, EMA, rate limits, and RViz adapters |
 | `linkerhand_l30_left_description` | Left L30 URDF, meshes, RViz, and Gazebo launchers |
 | `linkerhand_l30_right_description` | Right L30 v6 URDF, meshes, RViz, and Gazebo launchers |
@@ -198,7 +208,7 @@ colcon test
 colcon test-result --verbose
 ```
 
-Current baseline: `108 tests, 0 errors, 0 failures, 0 skipped`.
+Current baseline: `176 tests, 0 errors, 0 failures, 0 skipped`.
 
 ## Project Status
 
@@ -211,6 +221,10 @@ Current baseline: `108 tests, 0 errors, 0 failures, 0 skipped`.
 - [x] Configurable per-hand joint deadband and hysteresis
 - [x] Single-left and single-right Gazebo kinematic position synchronization
 - [x] O6 left/right Gazebo control chain and GUI motion acceptance
+- [x] Qt four-pose manual sampling, cancellation/resampling, and quality checks
+- [x] Qt personal profile generation, update/save-as, import, and profile management
+- [x] One-click RViz/Gazebo validation, camera handoff, and process cleanup
+- [x] On-screen RViz/Gazebo acceptance of L30/O6 left/right view, direction, motion, and stability
 
 These features define the complete project scope. The project focuses on driving a
 dexterous-hand simulation from an ordinary camera for gesture visualization, ROS 2
