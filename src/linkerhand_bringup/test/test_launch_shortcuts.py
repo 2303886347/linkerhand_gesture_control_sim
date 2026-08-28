@@ -66,3 +66,22 @@ def test_gazebo_shortcuts_include_registered_control_launch(filename):
 
     assert 'linkerhand_gazebo_control' in include.launch_description_source.location
     assert included_description.entities
+
+
+@pytest.mark.parametrize(
+    'filename',
+    [
+        'calibration_gui.launch.py',
+        'mediapipe_rviz_single.launch.py',
+    ],
+)
+def test_parameterized_user_workflow_entry_exists(filename):
+    path = LAUNCH_DIR / filename
+
+    assert path.is_file()
+    spec = importlib.util.spec_from_file_location(
+        filename.replace('.', '_'), path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.generate_launch_description().entities
