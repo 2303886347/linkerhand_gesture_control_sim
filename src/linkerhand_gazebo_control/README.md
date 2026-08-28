@@ -1,17 +1,27 @@
 # Linker Hand Gazebo 手势同步
 
-`linkerhand_gazebo_control` 把经过标定和滤波的 Linker Hand 关节目标同步到 Gazebo
-Sim。它提供单左手和单右手完整入口，用户只需普通 USB 摄像头即可在 Gazebo 中实时
-体验灵巧手跟随动作。
+`linkerhand_gazebo_control` 把经过标定和滤波的 Linker Hand L30/O6 关节目标同步到
+Gazebo Sim。它提供单左手和单右手完整入口，用户只需普通 USB 摄像头即可在 Gazebo
+中实时体验灵巧手跟随动作。
 
 ## 一键启动
 
 ```bash
-# 左手
+# L30 左手
 ros2 launch linkerhand_gazebo_control mediapipe_gazebo_left.launch.py
 
-# 右手
+# L30 右手
 ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py
+
+# O6 左手
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_o6_left.launch.py
+
+# O6 右手
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo_o6_right.launch.py
+
+# 参数式核心入口
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo.launch.py \
+  model_id:=o6 side:=right
 ```
 
 指定摄像头：
@@ -24,7 +34,17 @@ ros2 launch linkerhand_gazebo_control mediapipe_gazebo_right.launch.py \
 无摄像头时可以只启动 Gazebo 控制链路，用 ROS 2 话题发送测试目标：
 
 ```bash
-ros2 launch linkerhand_gazebo_control gazebo_control.launch.py side:=right
+ros2 launch linkerhand_gazebo_control gazebo_control.launch.py \
+  model_id:=o6 side:=right
+```
+
+Gazebo 默认加载项目内置的 `linkerhand_demo.sdf`，启动后相机会直接对准世界原点的
+机械手近景。Qt 标定上位机的“Gazebo 验证”和上述命令共用这一视角。如需使用其他
+世界，可以显式覆盖：
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo.launch.py \
+  model_id:=l30 side:=left world:=/absolute/path/to/custom.sdf
 ```
 
 ## 控制链路
@@ -41,8 +61,10 @@ ros2 launch linkerhand_gazebo_control gazebo_control.launch.py side:=right
   -> /left|right/joint_states（60 Hz）
 ```
 
-轨迹适配器会检查数组长度、关节完整性和有限值，补齐固定关节，并让四指 DIP 跟随
-对应 PIP。Gazebo 插件只接受完整的 22 关节目标，避免残缺消息造成模型部分跳变。
+轨迹适配器会检查数组长度、关节完整性和有限值，再根据型号 profile 补齐 mimic 和
+锁定关节。L30 由 10 个主动映射展开为 22 个完整关节；O6 由 6 个主动自由度展开为
+11 个完整关节。O6 四指 DIP 使用 `0.89` 联动倍率，拇指 IP 左手使用 `2.29`、右手
+使用 `1.86`。Gazebo 插件只接受所选型号的完整关节目标，避免残缺消息造成部分跳变。
 
 ## 同步原理
 
@@ -64,7 +86,7 @@ velocity = Kp * (target_position - actual_position)
 - 移除四指 DIP mimic，由轨迹适配器显式同步。
 - 保留 visual，移除会让相邻指节互锁的高精度 STL collision。
 - 保留粘性阻尼，将不适合轻量指节的统一库仑摩擦设为零。
-- 默认把左手质量和惯量乘以 `1/7.6`，右手保持原比例。
+- 质量和惯量使用型号/手侧 profile；L30 左手保留 `1/7.6` 修正，O6 保持官方比例。
 - 加载项目自带的在线关节同步插件和 Gazebo 状态发布插件。
 
 ## 项目边界

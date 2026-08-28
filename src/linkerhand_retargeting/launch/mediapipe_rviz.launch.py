@@ -60,6 +60,8 @@ def generate_launch_description():
                 ),
                 launch_arguments={
                     'parameters_file': LaunchConfiguration('parameters_file'),
+                    'model_id': LaunchConfiguration('model_id'),
+                    'model_side': LaunchConfiguration('model_side'),
                     'input_topic': LaunchConfiguration('pose_topic'),
                     'output_topic': LaunchConfiguration('target_joint_topic'),
                     'status_topic': LaunchConfiguration('status_topic'),
@@ -188,6 +190,16 @@ def generate_launch_description():
                 retargeting_share / 'config' / 'retargeting_left.yaml'
             ),
             description='角度映射和滤波参数文件。',
+        ),
+        DeclareLaunchArgument(
+            'model_id',
+            default_value='',
+            description='可选的型号覆盖；为空时使用参数文件值。',
+        ),
+        DeclareLaunchArgument(
+            'model_side',
+            default_value='',
+            description='可选的手侧覆盖；为空时使用参数文件值。',
         ),
         perception,
         retargeting,

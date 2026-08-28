@@ -21,6 +21,7 @@ def generate_launch_description():
                 str(gazebo_share / 'launch' / 'mediapipe_gazebo.launch.py')
             ),
             launch_arguments={
+                'model_id': 'l30',
                 'side': 'left',
                 'pose_topic': '/left/mediapipe/hand_pose',
                 'angles_topic': '/left/mediapipe/human_joint_angles',

@@ -79,3 +79,20 @@ def test_angle_calculation_reports_both_failures():
             MediaPipeHandPoseNode._calculate_angles_with_fallback(
                 np.zeros((21, 3)), np.ones((21, 3))
             )
+
+
+def test_angle_summary_contains_o6_thumb_calibration_values():
+    frame = np.zeros((240, 640, 3), dtype=np.uint8)
+    angles = {
+        'thumb_cmc_abduction': 0.1,
+        'thumb_cmc_flexion': 0.2,
+        'thumb_mcp_flexion': 0.3,
+    }
+
+    with patch('mediapipe_hand_pose.hand_pose_node.cv2.putText') as put_text:
+        MediaPipeHandPoseNode._draw_angle_summary(frame, angles)
+
+    labels = [call.args[1] for call in put_text.call_args_list]
+    assert any(label.startswith('Thumb Abd:') for label in labels)
+    assert any(label.startswith('Thumb CMC:') for label in labels)
+    assert any(label.startswith('Thumb MCP:') for label in labels)

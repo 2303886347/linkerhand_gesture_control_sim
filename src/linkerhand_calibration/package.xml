@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>linkerhand_calibration</name>
+  <version>1.0.0</version>
+  <description>通过 Qt 上位机和 MediaPipe 生成 Linker Hand 个人手势标定。</description>
+
+  <maintainer email="2303886347@qq.com">2303886347</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>hand_pose_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>linkerhand_retargeting</exec_depend>
+  <exec_depend>mediapipe_hand_pose</exec_depend>
+  <exec_depend>python3-pyside2.qtcore</exec_depend>
+  <exec_depend>python3-pyside2.qtgui</exec_depend>
+  <exec_depend>python3-pyside2.qtwidgets</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

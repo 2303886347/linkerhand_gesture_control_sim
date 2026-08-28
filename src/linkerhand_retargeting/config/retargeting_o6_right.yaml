@@ -1,0 +1,81 @@
+/**:
+  ros__parameters:
+    # O6 右手：参数与左手独立，四指使用 MCP/PIP 加权融合。
+    model_id: o6
+    model_side: right
+    input_topic: /right/mediapipe/hand_pose
+    output_topic: /right/linkerhand/target_joint_states
+    status_topic: /right/linkerhand/retargeting_status
+
+    accepted_hand: right
+    confidence_threshold: 0.5
+    filter_alpha: 0.35
+    joint_deadband:
+      enabled: true
+      start_moving_deg: 1.5
+      stop_moving_deg: 0.5
+      settle_frames: 3
+      thumb_start_moving_deg: 2.5
+      thumb_stop_moving_deg: 0.8
+    hold_timeout: 0.80
+    publish_rate: 30.0
+    max_joint_velocity: 3.0
+    return_joint_velocity: 0.8
+    mapping_angle_unit: deg
+
+    mapping:
+      thumb_cmc_yaw:
+        # Thumb CMC 实测：完全展开 30 度对应零位，收拢 75 度对应最大侧摆。
+        sources: [thumb_cmc_flexion]
+        source_weights: [1.0]
+        input_min: 30.0
+        input_max: 75.0
+        output_min: 0.0
+        output_max: 77.92
+        invert: false
+        safe_position: 0.0
+      thumb_cmc_pitch:
+        sources: [thumb_mcp_flexion]
+        source_weights: [1.0]
+        input_min: 10.0
+        input_max: 40.0
+        output_min: 0.0
+        output_max: 33.23
+        invert: false
+        safe_position: 0.0
+      index_mcp_pitch:
+        sources: [index_mcp_flexion, index_pip_flexion]
+        source_weights: [0.35, 0.65]
+        input_min: 3.25
+        input_max: 86.25
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      middle_mcp_pitch:
+        sources: [middle_mcp_flexion, middle_pip_flexion]
+        source_weights: [0.35, 0.65]
+        input_min: 22.75
+        input_max: 83.00
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      ring_mcp_pitch:
+        sources: [ring_mcp_flexion, ring_pip_flexion]
+        source_weights: [0.35, 0.65]
+        input_min: 13.00
+        input_max: 76.50
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0
+      pinky_mcp_pitch:
+        sources: [pinky_mcp_flexion, pinky_pip_flexion]
+        source_weights: [0.35, 0.65]
+        input_min: 9.75
+        input_max: 76.50
+        output_min: 0.0
+        output_max: 90.0
+        invert: false
+        safe_position: 0.0

@@ -5,6 +5,7 @@ from sensor_msgs.msg import JointState
 
 from linkerhand_gazebo_control.joints import CONTROLLED_JOINTS
 from linkerhand_gazebo_control.trajectory_adapter import build_trajectory
+from linkerhand_model_profiles import load_model_profile
 from linkerhand_retargeting.joints import MIMIC_JOINTS
 
 
@@ -56,3 +57,28 @@ def test_build_trajectory_rejects_invalid_arrays_and_values():
     message.position[0] = math.nan
     with pytest.raises(ValueError, match='非有限'):
         build_trajectory(message, 0.15)
+
+
+@pytest.mark.parametrize(
+    ('side', 'thumb_multiplier'),
+    [('left', 2.29), ('right', 1.86)],
+)
+def test_o6_trajectory_expands_six_active_joints(side, thumb_multiplier):
+    profile = load_model_profile('o6', side)
+    message = JointState()
+    message.name = list(profile.active_joints)
+    message.position = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+
+    trajectory = build_trajectory(message, 0.15, profile)
+    point = trajectory.points[0]
+    positions = dict(zip(trajectory.joint_names, point.positions))
+
+    assert trajectory.joint_names == list(profile.full_joints)
+    assert len(point.positions) == 11
+    assert positions['thumb_ip'] == pytest.approx(
+        positions['thumb_cmc_pitch'] * thumb_multiplier
+    )
+    for finger in ('index', 'middle', 'ring', 'pinky'):
+        assert positions[f'{finger}_dip'] == pytest.approx(
+            positions[f'{finger}_mcp_pitch'] * 0.89
+        )
