@@ -122,6 +122,7 @@ def _launch_setup(context):
                 launch_arguments={
                     'side': LaunchConfiguration('side'),
                     'model_id': spec.model_id,
+                    'world': LaunchConfiguration('world'),
                     'headless': LaunchConfiguration('headless'),
                     'trajectory_duration': LaunchConfiguration(
                         'trajectory_duration'
@@ -142,6 +143,11 @@ def _launch_setup(context):
 
 
 def generate_launch_description():
+    default_world = str(
+        Path(get_package_share_directory('linkerhand_gazebo_control'))
+        / 'worlds'
+        / 'linkerhand_demo.sdf'
+    )
     return LaunchDescription([
         DeclareLaunchArgument('side', default_value='left'),
         DeclareLaunchArgument('model_id', default_value='l30'),
@@ -176,6 +182,11 @@ def generate_launch_description():
         DeclareLaunchArgument('one_euro_min_cutoff', default_value='0.8'),
         DeclareLaunchArgument('one_euro_beta', default_value='0.3'),
         DeclareLaunchArgument('trajectory_duration', default_value='0.15'),
+        DeclareLaunchArgument(
+            'world',
+            default_value=default_world,
+            description='Gazebo 世界；默认使用项目内置的机械手近景视角。',
+        ),
         DeclareLaunchArgument('headless', default_value='false'),
         OpaqueFunction(function=_launch_setup),
     ])

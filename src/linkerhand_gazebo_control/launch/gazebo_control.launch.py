@@ -177,6 +177,11 @@ def _launch_setup(context):
 
 
 def generate_launch_description():
+    default_world = str(
+        Path(get_package_share_directory('linkerhand_gazebo_control'))
+        / 'worlds'
+        / 'linkerhand_demo.sdf'
+    )
     return LaunchDescription([
         DeclareLaunchArgument(
             'side', default_value='left', description='控制 left 或 right 手。'
@@ -190,7 +195,9 @@ def generate_launch_description():
             description='可选的原始 URDF 绝对路径。',
         ),
         DeclareLaunchArgument(
-            'world', default_value='empty.sdf', description='Gazebo 世界。'
+            'world',
+            default_value=default_world,
+            description='Gazebo 世界；默认使用项目内置的机械手近景视角。',
         ),
         DeclareLaunchArgument(
             'headless',

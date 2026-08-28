@@ -38,6 +38,15 @@ ros2 launch linkerhand_gazebo_control gazebo_control.launch.py \
   model_id:=o6 side:=right
 ```
 
+Gazebo 默认加载项目内置的 `linkerhand_demo.sdf`，启动后相机会直接对准世界原点的
+机械手近景。Qt 标定上位机的“Gazebo 验证”和上述命令共用这一视角。如需使用其他
+世界，可以显式覆盖：
+
+```bash
+ros2 launch linkerhand_gazebo_control mediapipe_gazebo.launch.py \
+  model_id:=l30 side:=left world:=/absolute/path/to/custom.sdf
+```
+
 ## 控制链路
 
 ```text
